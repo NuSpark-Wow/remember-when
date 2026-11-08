@@ -480,14 +480,16 @@ function startShow(d){
   getAudio(lineFor(0)); if (slides[1]) getAudio(lineFor(1));
 }
 
-async function fetchPics(q){
+// Each scene sends its own words, so the photo check can see whether a picture truly fits
+async function fetchPics(q, scene){
   if (!q) return [];
-  try { const r = await fetch("/api/images?q=" + encodeURIComponent(q)); const d = await r.json(); return d.images || []; } catch(e) { return []; }
+  try { const r = await fetch("/api/images?q=" + encodeURIComponent(q) + "&scene=" + encodeURIComponent(scene.slice(0, 500))); const d = await r.json(); return d.images || []; } catch(e) { return []; }
 }
 async function findPic(i){
   const s = slides[i]; const run = show;
-  let list = await fetchPics(s.image_query);
-  if (!list.filter(p => !used.has(p.src)).length) list = list.concat(await fetchPics(s.image_backup));
+  const scene = (s.heading ? s.heading + ". " : "") + s.text;
+  let list = await fetchPics(s.image_query, scene);
+  if (!list.filter(p => !used.has(p.src)).length) list = list.concat(await fetchPics(s.image_backup, scene));
   if (run !== show) return;
   const pick = list.find(p => !used.has(p.src)) || null;
   if (pick) { used.add(pick.src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = pick.src; }
@@ -570,7 +572,7 @@ function paintPhoto(i){
   if (i !== idx || i >= slides.length) return;
   const s = slides[i], p = pics[i];
   if (p === undefined) { paintCard(s.year || "…", s.heading, "Finding a photo…"); return; }
-  if (!p) { paintCard(s.year || "★", s.heading, ""); $("credit").textContent = "No free-to-use photo turned up for this one. Tap “More photos like this” to search the archives."; return; }
+  if (!p) { paintCard(s.year || "★", s.heading, ""); $("credit").textContent = "No free-to-use photo truly matched this scene, so you're seeing the title card. Tap “More photos like this” to search the archives."; return; }
   const safe = esc(p.src);
   swapLayer(`<div class="blur" style="background-image:url('${safe}')"></div><img class="kb" src="${safe}" alt="${esc(p.title || s.heading)}" referrerpolicy="no-referrer">`);
   const img = $("L" + layer).querySelector("img");
