@@ -139,11 +139,31 @@ Keep a photo only if a viewer would instantly see it belongs with this scene:
 - Reject photos that are mostly text, documents, sheet music, maps, logos, blank or unclear, or that show something sad or disturbing the scene doesn't call for.
 Reply with only JSON like {"fits":[3,1]}: the numbers of the photos that fit, best first. Use {"fits":[]} if none fit.`;
 
+// The site downloads each photo itself and hands it to Claude, because some archives
+// refuse direct requests from Claude. Photos that won't download are simply skipped.
+async function grab(src) {
+  const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 7000);
+  try {
+    const r = await fetch(src, { headers: { "User-Agent": UA }, signal: ctl.signal });
+    if (!r.ok) return null;
+    let type = String(r.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    if (type === "image/jpg") type = "image/jpeg";
+    if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(type)) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length < 2000 || buf.length > 4500000) return null;
+    return { type, data: buf.toString("base64") };
+  } catch (e) { return null; } finally { clearTimeout(tm); }
+}
+
 async function lookCheck(scene, imgs) {
+  const files = await Promise.all(imgs.map(im => grab(im.src)));
+  const ok = imgs.map((im, i) => ({ im, f: files[i] })).filter(x => x.f);
+  if (!ok.length) return [];
+  imgs = ok.map(x => x.im);
   const content = [{ type: "text", text: `Scene:\n${scene}\n\nCandidate photos:` }];
-  imgs.forEach((im, i) => {
+  ok.forEach(({ im, f }, i) => {
     content.push({ type: "text", text: `Photo ${i + 1}: "${im.title}"` });
-    content.push({ type: "image", source: { type: "url", url: im.src } });
+    content.push({ type: "image", source: { type: "base64", media_type: f.type, data: f.data } });
   });
   const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 20000);
   try {
