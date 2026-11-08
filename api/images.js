@@ -170,13 +170,20 @@ async function lookCheck(scene, imgs) {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST", signal: ctl.signal,
       headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: LOOK_MODEL, max_tokens: 60, system: LOOK_SYSTEM, messages: [{ role: "user", content }] })
+      body: JSON.stringify({ model: LOOK_MODEL, max_tokens: 200, thinking: { type: "disabled" }, system: LOOK_SYSTEM, messages: [{ role: "user", content }] })
     });
     if (!r.ok) throw new Error("look_" + r.status + " " + (await r.text()).slice(0, 150));
     const d = await r.json();
     const txt = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-    const j = JSON.parse(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
-    return (j.fits || []).map(n => imgs[n - 1]).filter(Boolean);
+    // Read the photo numbers however they come back: {"fits":[3,1]}, "fits: 3, 1", or "[]"
+    let nums = null;
+    try { const j = JSON.parse(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1)); if (Array.isArray(j.fits)) nums = j.fits; } catch (e) {}
+    if (!nums) {
+      const m = txt.match(/fits[^\[\d]*\[([^\]]*)\]/i) || txt.match(/\[([\d,\s]*)\]/);
+      if (m) nums = (m[1].match(/\d+/g) || []).map(Number);
+    }
+    if (!nums) throw new Error("unreadable answer: " + txt.slice(0, 120) + " (stop: " + d.stop_reason + ")");
+    return [...new Set(nums.map(Number))].map(n => imgs[n - 1]).filter(Boolean);
   } finally { clearTimeout(tm); }
 }
 
@@ -208,12 +215,29 @@ async function gather(q, t, log, debug, want) {
   return found;
 }
 
-module.exports = async (req, res) => {
-  const q = String(req.query.q || "").replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
-  const scene = String(req.query.scene || "").replace(/\s+/g, " ").trim().slice(0, 500);
-  const debug = req.query.debug === "1";
-  if (!q || BAD.test(q)) return res.json({ images: [] });
-  const t = terms(q), log = [];
+// v4: a viewer can describe the picture they'd rather see ("want"). Claude turns that into
+// archive searches, and the photo check uses the description too.
+const WANT_SYSTEM = `A viewer of a nostalgia slide show described the picture they would like to see for a scene. Turn it into photo-archive searches.
+Archives match photo TITLES literally. For famous people, shows, events or places, use their proper names with Capital Letters (for example "Abbott and Costello", "Bob Barker"). For everyday things, use the physical thing plus its decade in lowercase (for example "1950s jukebox").
+Reply with only JSON: {"query":"2 to 4 words","backup":"1 to 3 broader words"}. If the request is inappropriate (sexual, hateful, violent or not a picture request), reply {"query":"","backup":""}.`;
+
+async function wantToSearch(want, scene) {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model: LOOK_MODEL, max_tokens: 120, thinking: { type: "disabled" }, system: WANT_SYSTEM,
+      messages: [{ role: "user", content: `Scene: ${scene}\n\nThe viewer would like a picture of: ${want}` }] })
+  });
+  if (!r.ok) throw new Error("want_" + r.status);
+  const d = await r.json();
+  const txt = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  const j = JSON.parse(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
+  const clean = v => String(v || "").replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+  return [clean(j.query), clean(j.backup)].filter(Boolean);
+}
+
+async function findFor(q, scene, log, debug) {
+  const t = terms(q);
   const look = !!(scene && process.env.ANTHROPIC_API_KEY);
   let images = await gather(q, t, log, debug, look ? 6 : 4);
   let checked = false;
@@ -224,7 +248,35 @@ module.exports = async (req, res) => {
       console.error("photo check failed:", e.message); if (debug) log.push({ check_error: e.message });
     }
   }
-  images = images.slice(0, 4);
+  return { images, checked, t };
+}
+
+module.exports = async (req, res) => {
+  let q = String(req.query.q || "").replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+  let scene = String(req.query.scene || "").replace(/\s+/g, " ").trim().slice(0, 500);
+  const want = String(req.query.want || "").replace(/\s+/g, " ").trim().slice(0, 200);
+  const debug = req.query.debug === "1";
+  const log = [];
+
+  if (want) {
+    if (BAD.test(want) || !process.env.ANTHROPIC_API_KEY) return res.json({ images: [] });
+    let searches = [];
+    try { searches = await wantToSearch(want, scene); } catch (e) { console.error("want failed:", e.message); }
+    if (debug) log.push({ searches });
+    scene = (scene ? scene + "\n" : "") + "The viewer specifically asked for a picture of: " + want;
+    let out = { images: [], checked: false };
+    for (const s of searches) {
+      if (BAD.test(s)) continue;
+      out = await findFor(s, scene, log, debug);
+      if (out.images.length) break;
+    }
+    res.setHeader("Cache-Control", "no-store");
+    return res.json(debug ? { images: out.images.slice(0, 4), checked: out.checked, log } : { images: out.images.slice(0, 4), checked: out.checked });
+  }
+
+  if (!q || BAD.test(q)) return res.json({ images: [] });
+  const { images: found, checked, t } = await findFor(q, scene, log, debug);
+  const images = found.slice(0, 4);
   res.setHeader("Cache-Control", debug ? "no-store" : (images.length || checked) ? "public, s-maxage=604800" : "s-maxage=3600");
   return res.json(debug ? { images, checked, terms: t, log } : { images, checked });
 };
