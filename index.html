@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remember When</title>
+<meta name="description" content="Ask about the good old days and watch a narrated slide show of real archive photos. Made for easy watching, big text, and great conversations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f4ecdc; --card:#fffaf0; --ink:#2a2018; --soft:#6b5a48; --line:#e3d4b9;
+  --red:#a8402e; --red-d:#7a2c1f; --gold:#c4952f; --teal:#2e6a66; --teal-d:#1d4a47;
+  --stage:#1c1712; --stage-ink:#f6eedd;
+  --fs:20px;
+}
+html.big{--fs:23px} html.huge{--fs:27px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:'Atkinson Hyperlegible',system-ui,sans-serif;font-size:var(--fs)}
+button,input{font-family:inherit;font-size:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 40px}
+.hide{display:none !important}
+
+/* header */
+header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-bottom:16px}
+.brand{font-family:Fraunces,Georgia,serif;font-weight:800;font-size:clamp(34px,5vw,50px);line-height:1;letter-spacing:-.5px;color:var(--red-d)}
+.brand small{display:block;font-family:'Atkinson Hyperlegible',sans-serif;font-weight:700;font-size:.75rem;letter-spacing:.3px;color:var(--soft);margin-top:6px}
+.prefs{margin-left:auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:flex;background:var(--card);border:2px solid var(--line);border-radius:999px;padding:4px}
+.seg .lab{align-self:center;font-weight:700;font-size:.72rem;color:var(--soft);padding:0 8px 0 10px}
+.seg button{border:0;background:transparent;border-radius:999px;padding:8px 14px;font-weight:700;font-size:.8rem;color:var(--soft);min-height:44px}
+.seg button.on{background:var(--teal);color:#fff}
+
+/* ask */
+.ask{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 2px 0 var(--line)}
+.ask h1{font-family:Fraunces,Georgia,serif;font-size:1.35rem;margin:0 0 12px;font-weight:700}
+.row{display:flex;gap:10px;align-items:center}
+.mic{flex:none;width:64px;height:64px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:28px;box-shadow:0 3px 0 var(--red-d)}
+.mic.listening{background:var(--gold);box-shadow:0 0 0 8px rgba(196,149,47,.3)}
+.field{flex:1;min-width:0}
+.field input{width:100%;border:2px solid var(--line);border-radius:14px;padding:0 16px;height:64px;font-size:1.05rem;color:var(--ink);background:#fff;outline:none}
+.field input:focus{border-color:var(--teal)}
+.go{flex:none;border:0;background:var(--teal);color:#fff;font-weight:700;font-size:1.05rem;padding:0 24px;height:64px;border-radius:14px;box-shadow:0 3px 0 var(--teal-d)}
+.go.ready{background:var(--red);box-shadow:0 3px 0 var(--red-d)}
+.hint{font-size:.8rem;color:var(--soft);font-weight:700;margin-top:8px;min-height:1.2em}
+.photoUp{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.photoUp label{border:2px dashed var(--line);border-radius:12px;padding:10px 14px;font-weight:700;font-size:.8rem;color:var(--teal-d);background:#fff;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:8px}
+.photoUp img{height:52px;border-radius:8px;border:2px solid var(--line)}
+.photoUp button{border:0;background:var(--line);border-radius:999px;padding:8px 14px;font-weight:700;font-size:.75rem;color:var(--ink);min-height:40px}
+
+/* tabs + starters */
+.pick{margin-top:16px}
+.pick h2{font-size:.78rem;letter-spacing:.8px;text-transform:uppercase;color:var(--soft);margin:12px 2px 8px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:10px 18px;font-weight:700;font-size:.9rem;color:var(--ink);min-height:48px}
+.tab.on{background:var(--red);border-color:var(--red);color:#fff}
+.starters{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:12px}
+.starter{text-align:left;border:2px solid var(--line);background:#fff;border-radius:14px;padding:14px 16px;font-weight:700;font-size:.92rem;color:var(--ink);line-height:1.3;min-height:60px}
+.starter:hover{border-color:var(--teal)}
+.starter::before{content:"▶ ";color:var(--red)}
+
+/* stage: an old-time movie theater */
+.show{margin-top:22px;background:radial-gradient(ellipse at 50% 30%,#2a1712 0%,#140c09 60%,#0b0706 100%);border-radius:22px;padding:14px;color:var(--stage-ink);box-shadow:0 10px 30px rgba(42,32,24,.3)}
+.marquee{position:relative;margin:2px auto 14px;max-width:760px;background:#1a0f0a;border-radius:14px;padding:14px 22px 12px;text-align:center;
+  border:3px solid #8a5a22;box-shadow:0 0 0 6px #241510,0 0 24px rgba(255,190,90,.25)}
+.marquee::before{content:"";position:absolute;inset:-12px;border-radius:20px;pointer-events:none;
+  background:radial-gradient(circle,#ffe7a8 0 3px,transparent 4px) 0 0/22px 22px;
+  -webkit-mask:linear-gradient(#000 0 0) top/100% 12px no-repeat,linear-gradient(#000 0 0) bottom/100% 12px no-repeat,linear-gradient(#000 0 0) left/12px 100% no-repeat,linear-gradient(#000 0 0) right/12px 100% no-repeat;
+  mask:linear-gradient(#000 0 0) top/100% 12px no-repeat,linear-gradient(#000 0 0) bottom/100% 12px no-repeat,linear-gradient(#000 0 0) left/12px 100% no-repeat,linear-gradient(#000 0 0) right/12px 100% no-repeat;
+  animation:bulbs 1.6s steps(2) infinite}
+@keyframes bulbs{50%{background-position:11px 0;filter:brightness(.75)}}
+.marquee .now{font-weight:700;font-size:.68rem;letter-spacing:3px;color:#e9b85c;text-transform:uppercase}
+.showTitle{font-family:Fraunces,Georgia,serif;font-weight:800;font-size:1.3rem;color:#fff4d6;text-shadow:0 0 12px rgba(255,200,110,.5);line-height:1.2;margin-top:2px}
+.count{font-weight:700;font-size:.72rem;color:#d9b98a;margin-top:4px}
+.theater{position:relative;padding:34px 9% 0;overflow:hidden;border-radius:10px}
+.valance{position:absolute;left:0;right:0;top:0;height:34px;z-index:4;
+  background:radial-gradient(ellipse at 50% 0,#a3201c 0 60%,transparent 62%) 0 0/60px 34px repeat-x,linear-gradient(#5e0d0b,#8e1a16 70%,transparent 71%);
+  box-shadow:0 6px 10px rgba(0,0,0,.45)}
+.curtain{position:absolute;top:0;bottom:0;width:52%;z-index:3;transition:width 1.6s cubic-bezier(.6,0,.3,1);
+  background:repeating-linear-gradient(90deg,#5c0b0a 0,#9b1d18 14px,#c2302a 22px,#9b1d18 30px,#5c0b0a 44px);
+  box-shadow:inset 0 -40px 40px rgba(0,0,0,.45)}
+.curtain.l{left:0;border-right:3px solid #3d0605}.curtain.r{right:0;border-left:3px solid #3d0605}
+.theater.open .curtain{width:10%}
+@media (prefers-reduced-motion:reduce){.curtain{transition:none}}
+.frame{position:relative;z-index:1;aspect-ratio:16/10;background:#0b0806;border-radius:4px;overflow:hidden;border:4px solid #d9d4c7;
+  box-shadow:0 0 0 2px #000,0 0 50px rgba(255,240,205,.22)}
+.frame::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.35) 100%)}
+.seats{height:46px;margin:10px -9% 0;position:relative;z-index:5;
+  background:radial-gradient(ellipse 26px 30px at 50% 100%,#070403 0 98%,transparent 100%) 0 100%/56px 46px repeat-x,
+             radial-gradient(ellipse 26px 22px at 50% 100%,#120a07 0 98%,transparent 100%) 28px 100%/56px 34px repeat-x}
+.layer{position:absolute;inset:0;opacity:0;transition:opacity 1s ease}
+.layer.on{opacity:1}
+.layer .blur{position:absolute;inset:-30px;background-size:cover;background-position:center;filter:blur(24px) brightness(.55) sepia(.3)}
+.layer img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.layer.on img.kb{animation:kb 16s ease-out forwards}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.07)}}
+@media (prefers-reduced-motion:reduce){.layer.on img.kb{animation:none}.layer{transition:none}}
+.card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;
+  background:radial-gradient(ellipse at center,#5a4632 0%,#2b2119 70%,#1a140f 100%)}
+.card .yr{font-family:Fraunces,Georgia,serif;font-weight:800;font-size:clamp(54px,11vw,120px);color:#e9c983;line-height:1;opacity:.95}
+.card .hd{font-family:Fraunces,Georgia,serif;font-weight:700;font-size:clamp(22px,3.6vw,38px);color:#f6eedd;margin-top:10px;max-width:18em}
+.card .sub{font-size:.85rem;color:#d9c7a4;margin-top:12px;font-weight:700}
+.year{position:absolute;left:14px;top:14px;background:rgba(28,23,18,.82);color:#e9c983;font-family:Fraunces,Georgia,serif;font-weight:800;font-size:1rem;padding:6px 14px;border-radius:999px}
+.loading{position:absolute;inset:0;z-index:6;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:Fraunces,Georgia,serif;font-size:clamp(20px,3vw,32px);text-align:center;padding:20px;color:#fff4d6;text-shadow:0 2px 8px #000}
+.loading.on{display:flex}
+.leader{position:relative;width:110px;height:110px;border-radius:50%;border:4px solid #f3ead6;background:rgba(30,20,14,.85);display:flex;align-items:center;justify-content:center;
+  font-size:58px;font-weight:800;color:#f3ead6;box-shadow:0 0 0 10px rgba(243,234,214,.15)}
+.leader::before,.leader::after{content:"";position:absolute;background:rgba(243,234,214,.5)}
+.leader::before{left:50%;top:0;bottom:0;width:2px}.leader::after{top:50%;left:0;right:0;height:2px}
+.leader span{position:relative;z-index:1}
+.leader i{position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(rgba(243,234,214,.35) 0deg,transparent 0deg);animation:sweep 1s linear infinite}
+@keyframes sweep{0%{background:conic-gradient(rgba(243,234,214,.35) 0deg,transparent 0deg)}25%{background:conic-gradient(rgba(243,234,214,.35) 90deg,transparent 90deg)}50%{background:conic-gradient(rgba(243,234,214,.35) 180deg,transparent 180deg)}75%{background:conic-gradient(rgba(243,234,214,.35) 270deg,transparent 270deg)}100%{background:conic-gradient(rgba(243,234,214,.35) 360deg,transparent 360deg)}}
+
+.caption{padding:16px 8px 6px}
+.caption h3{font-family:Fraunces,Georgia,serif;font-size:clamp(24px,3vw,34px);margin:0 0 8px;color:#fff;line-height:1.15}
+.caption p{margin:0;font-size:1.08rem;line-height:1.6;color:var(--stage-ink);max-width:46em}
+.credit{font-size:.66rem;color:#bfae8e;margin-top:10px;line-height:1.5}
+.credit a{color:#e9c983}
+
+.ctrls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 6px 4px}
+.cbtn{border:0;border-radius:14px;padding:0 20px;min-height:58px;font-weight:700;font-size:1rem;background:#3a2f25;color:#fff}
+.cbtn:disabled{opacity:.35;cursor:default}
+.cbtn.play{background:var(--red);min-width:150px}
+.cbtn.small{min-height:48px;font-size:.82rem;padding:0 14px}
+.spacer{flex:1}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dots button{width:16px;height:16px;border-radius:50%;border:0;background:#5c4c3c;padding:0}
+.dots button.on{background:#e9c983}
+
+.morePhotos{margin:10px 6px 4px;background:#2a221b;border-radius:14px;padding:14px}
+.morePhotos p{margin:0 0 10px;font-size:.8rem;color:#d9c7a4}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.links a{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border-radius:999px;background:#3a2f25;color:#fff;font-weight:700;font-size:.78rem;text-decoration:none}
+.links a small{font-weight:400;color:#cbb895;margin-left:6px}
+
+/* end panel */
+.end{padding:8px 6px 6px}
+.end .memory{background:#f3ead6;color:var(--ink);border-radius:16px;padding:18px 20px;margin:4px 0 14px}
+.end .memory .lab{font-size:.72rem;letter-spacing:.8px;text-transform:uppercase;font-weight:700;color:var(--red)}
+.end .memory p{font-family:Fraunces,Georgia,serif;font-size:1.3rem;margin:6px 0 0;line-height:1.35}
+.end .dyk{background:#2a221b;border-radius:16px;padding:16px 18px;margin-bottom:14px}
+.end .dyk .lab{font-size:.72rem;letter-spacing:.8px;text-transform:uppercase;font-weight:700;color:#e9c983}
+.end .dyk p{margin:6px 0 0;font-size:1rem;line-height:1.55}
+.end h4{font-size:.78rem;letter-spacing:.8px;text-transform:uppercase;color:#d9c7a4;margin:6px 0 10px}
+.nextGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-bottom:12px}
+.nextGrid button{text-align:left;border:0;border-radius:14px;padding:14px 16px;min-height:60px;background:#3a2f25;color:#fff;font-weight:700;font-size:.92rem;line-height:1.3}
+.nextGrid button::before{content:"▶ ";color:#e9c983}
+.endBtns{display:flex;flex-wrap:wrap;gap:10px}
+.endBtns .cbtn{flex:1;min-width:200px}
+.cbtn.gold{background:var(--gold);color:#1c1712}
+
+.err{padding:14px 8px;font-size:1rem}
+.notice{margin-top:22px;font-size:.7rem;color:var(--soft);line-height:1.6;text-align:center}
+.sources{margin-top:26px;background:var(--card);border:2px solid var(--line);border-radius:18px;padding:16px 18px}
+.sources summary{font-weight:700;cursor:pointer;font-size:.9rem;min-height:40px;display:flex;align-items:center}
+.sources ul{margin:10px 0 0;padding-left:20px;font-size:.8rem;line-height:1.7}
+.sources a{color:var(--teal-d);font-weight:700}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:14px 20px;border-radius:12px;font-weight:700;font-size:.85rem;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+
+@media (max-width:640px){
+  .wrap{padding:14px 16px 30px}
+  .prefs{margin-left:0}
+  .row{flex-wrap:wrap}
+  .field{flex-basis:calc(100% - 74px)}
+  .go{width:100%}
+  .frame{aspect-ratio:4/3;border-width:3px}
+  .theater{padding:26px 6% 0}.valance{height:26px;background-size:40px 26px,auto}.theater.open .curtain{width:6%}
+  .seats{height:34px;margin:8px -6% 0;background-size:40px 34px,40px 26px}
+  .cbtn{flex:1;padding:0 12px}
+  .cbtn.play{min-width:0}
+  .spacer{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Remember When<small>A trip down memory lane, told in pictures</small></div>
+    <div class="prefs">
+      <div class="seg" role="group" aria-label="Narrator voice"><span class="lab">Voice</span><button id="vMan" class="on">Man</button><button id="vWoman">Woman</button></div>
+      <div class="seg" role="group" aria-label="Text size"><span class="lab">Text</span><button id="tN" class="on" aria-label="Regular text">A</button><button id="tB" aria-label="Large text" style="font-size:1rem">A</button><button id="tH" aria-label="Extra large text" style="font-size:1.2rem">A</button></div>
+    </div>
+  </header>
+
+  <section class="ask">
+    <h1>What would you like to remember?</h1>
+    <div class="row">
+      <button class="mic" id="mic" aria-label="Speak your question">🎤</button>
+      <div class="field"><input id="q" type="text" maxlength="300" placeholder="Try: What was it like going to a drive-in?" aria-label="Your question" enterkeyhint="go"></div>
+      <button class="go" id="go">Show me</button>
+    </div>
+    <div class="hint" id="hint">Tap the red microphone and ask out loud, or type your question.</div>
+    <div class="photoUp">
+      <label for="file">📷 Share an old photo<input id="file" type="file" accept="image/*" class="hide"></label>
+      <img id="thumb" class="hide" alt="Your photo">
+      <button id="clearPhoto" class="hide">Remove photo</button>
+      <span class="hint" id="photoHint" style="margin:0"></span>
+    </div>
+  </section>
+
+  <section class="pick" aria-label="Ideas to explore">
+    <h2>Pick a decade</h2>
+    <div class="tabs" id="decades"></div>
+    <h2>Or pick a topic</h2>
+    <div class="tabs" id="topics"></div>
+    <div class="starters" id="starters"></div>
+  </section>
+
+  <section class="show" id="show" aria-live="polite">
+    <div class="marquee"><div class="now" id="nowLab">Tonight's feature</div><div class="showTitle" id="showTitle">Remember When</div><div class="count" id="count">Pick a decade or ask a question</div></div>
+    <div class="theater open" id="theater">
+    <div class="valance"></div><div class="curtain l"></div><div class="curtain r"></div>
+    <div class="loading" id="loading"><div class="leader"><i></i><span id="leadNum">5</span></div><div id="loadMsg">Coming right up…</div></div>
+    <div class="frame" id="frame">
+      <div class="layer on" id="L0"></div>
+      <div class="layer" id="L1"></div>
+      <div class="year hide" id="year"></div>
+    </div>
+    <div class="seats" aria-hidden="true"></div>
+    </div>
+    <div id="slideArea">
+      <div class="caption"><h3 id="hd">Ask about any time you remember</h3><p id="tx">Pick a decade or a topic above, or ask your own question. You'll get a short slide show of real archive photos, read aloud, one picture at a time.</p><div class="credit" id="credit"></div></div>
+      <div class="ctrls" id="ctrls">
+        <button class="cbtn" id="prev" aria-label="Previous picture">◀ Back</button>
+        <button class="cbtn play" id="play">▶ Play</button>
+        <button class="cbtn" id="next" aria-label="Next picture">Next ▶</button>
+        <span class="spacer"></span>
+        <button class="cbtn small" id="morePh">📷 More photos like this</button>
+      </div>
+      <div class="dots" id="dots" style="padding:6px 8px"></div>
+      <div class="morePhotos hide" id="photoLinks">
+        <p>Free photo archives to explore. Each one opens a search for this picture. Check each photo's rights on its own page before you reuse it.</p>
+        <div class="links" id="links"></div>
+      </div>
+    </div>
+    <div class="end hide" id="endArea">
+      <div class="memory"><div class="lab">Your turn</div><p id="memQ"></p></div>
+      <div class="dyk hide" id="dykBox"><div class="lab">Did you know?</div><p id="dyk"></p></div>
+      <h4>Where would you like to go next?</h4>
+      <div class="nextGrid" id="nextGrid"></div>
+      <div class="endBtns">
+        <button class="cbtn gold" id="tellMore">➕ Tell me more about this</button>
+        <button class="cbtn" id="again">↺ Watch it again</button>
+        <button class="cbtn" id="newQ">🎤 Ask something new</button>
+      </div>
+    </div>
+    <div class="err hide" id="err"></div>
+  </section>
+
+  <details class="sources">
+    <summary>📚 Where the photos come from</summary>
+    <ul>
+      <li>The slide shows look first in the <a href="https://www.loc.gov/free-to-use/" target="_blank" rel="noopener">Library of Congress</a> (only photos marked "no known restrictions"), then <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a> and <a href="https://openverse.org" target="_blank" rel="noopener">Openverse</a> (public domain and free Creative Commons licenses).</li>
+      <li>Every picture shows its title, photographer or source, and license, with a link to its original page.</li>
+      <li>More free archives worth a look: <a href="https://catalog.archives.gov" target="_blank" rel="noopener">National Archives</a>, <a href="https://www.si.edu/openaccess" target="_blank" rel="noopener">Smithsonian Open Access</a>, <a href="https://digitalcollections.nypl.org" target="_blank" rel="noopener">New York Public Library Digital Collections</a>, <a href="https://www.flickr.com/commons" target="_blank" rel="noopener">Flickr Commons</a>, and <a href="https://picryl.com" target="_blank" rel="noopener">PICRYL</a>.</li>
+      <li>Many famous pictures from these decades, like TV shows, movie stars, album covers, and ads, are still under copyright. The narrator can talk about them, but the slides only show photos that are free to use.</li>
+    </ul>
+  </details>
+
+  <p class="notice">Remember When is hosted by AI, which can make mistakes. Prices and dates are approximate and varied from place to place. Your voice is turned into text by your own browser and is never recorded. Photos you share are used only to make your show and are not saved.</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+function toast(msg){ const el = $("toast"); el.textContent = msg; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 2600); }
+const store = { get(k){ try { return localStorage.getItem(k); } catch(e) { return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e) {} } };
+
+/* ---------- ideas ---------- */
+const DECADES = {
+  "The '40s": ["What was life like on the home front in the 1940s?", "What did families listen to on the radio in the 1940s?", "What was a soda fountain like?", "What was it like dancing to the big bands?", "What was it like when World War II ended in 1945?"],
+  "The '50s": ["What was it like going to a drive-in movie?", "What was a 1950s diner like?", "What was it like when families got their first TV?", "What were the classic cars of the 1950s?", "What was it like when rock and roll first arrived?"],
+  "The '60s": ["What was it like watching the moon landing in 1969?", "What toys did kids play with in the 1960s?", "What was the British Invasion in music?", "What did a 1960s kitchen look like?", "What were the muscle cars of the 1960s?"],
+  "The '70s": ["What were roller rinks and disco like in the 1970s?", "What was the 1970s gas crisis like?", "What did a 1970s living room look like?", "What was the CB radio craze?", "What was the 1976 Bicentennial like?"],
+  "The '80s": ["What were video arcades like in the 1980s?", "What was it like to have a Walkman?", "What were the first home computers like?", "What were shopping malls like in the 1980s?", "What was it like when MTV started?"]
+};
+const TOPICS = {
+  "Music & Radio": ["What was it like listening to a jukebox?", "What was a transistor radio?", "What were record stores like?", "What were 45s and LPs?", "What was it like listening to radio shows before TV?"],
+  "TV & Movies": ["What were the old movie palaces like?", "What were Saturday matinees like for kids?", "What were TV dinners?", "What was it like adjusting rabbit-ear antennas?", "Why did TV stations sign off at night?"],
+  "Cars & Travel": ["What was it like driving Route 66?", "What were family road trips in a station wagon like?", "What were full-service gas stations like?", "What were roadside motels like?", "When were the interstate highways built?"],
+  "Everyday Life": ["What was it like when the milkman delivered?", "What were party telephone lines?", "What did groceries cost in the 1950s?", "What was the Sears catalog like?", "What were S&H Green Stamps?"],
+  "School Days": ["What was a one-room schoolhouse like?", "What were duck and cover drills?", "What were metal lunch boxes like?", "What was school picture day like years ago?", "What were slide rules?"],
+  "Toys & Games": ["When did the hula hoop craze happen?", "What was the Slinky?", "What were Lionel toy trains like?", "What board games did families play years ago?", "What were marbles and jacks?"],
+  "Food & Diners": ["What was an automat?", "What were Jell-O salads?", "What did people eat at a 1950s diner?", "What were the first fast food restaurants like?", "What was Sunday dinner like years ago?"],
+  "Big Moments": ["What was V-J Day like in 1945?", "What was it like when the Beatles first came to America?", "What was Woodstock like?", "What was the first Earth Day like?", "What was the 1964 World's Fair like?"]
+};
+let activeTab = "The '50s";
+function renderTabs(){
+  const mk = (box, obj) => { box.innerHTML = ""; Object.keys(obj).forEach(k => { const b = document.createElement("button"); b.className = "tab" + (k === activeTab ? " on" : ""); b.textContent = k; b.onclick = () => { activeTab = k; renderTabs(); }; box.appendChild(b); }); };
+  mk($("decades"), DECADES); mk($("topics"), TOPICS);
+  const list = DECADES[activeTab] || TOPICS[activeTab] || [];
+  $("starters").innerHTML = "";
+  list.forEach(q => { const b = document.createElement("button"); b.className = "starter"; b.textContent = q; b.onclick = () => { unlock(); $("q").value = q; ask(q); }; $("starters").appendChild(b); });
+}
+renderTabs();
+
+/* ---------- text size ---------- */
+function setSize(s){ document.documentElement.classList.toggle("big", s === "big"); document.documentElement.classList.toggle("huge", s === "huge"); $("tN").classList.toggle("on", s === "n"); $("tB").classList.toggle("on", s === "big"); $("tH").classList.toggle("on", s === "huge"); store.set("rw_size", s); }
+$("tN").onclick = () => setSize("n"); $("tB").onclick = () => setSize("big"); $("tH").onclick = () => setSize("huge");
+setSize(store.get("rw_size") || "n");
+
+/* ---------- audio ---------- */
+const audioCache = new Map(); // text -> Promise<AudioBuffer|null>
+let ctx = null, voiceOff = false, srcNode = null, voicePref = store.get("rw_voice") === "woman" ? "woman" : "man";
+function unlock(){
+  try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended") ctx.resume(); } catch(e) {}
+  try { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch(e) {}
+}
+function setVoicePref(p){ voicePref = p; $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman"); store.set("rw_voice", p); audioCache.clear(); }
+setVoicePref(voicePref);
+$("vMan").onclick = () => { setVoicePref("man"); unlock(); sayAlone("Hello, and welcome to Remember When."); };
+$("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayAlone("Hello, and welcome to Remember When."); };
+
+function getAudio(text){
+  if (!text) return Promise.resolve(null);
+  const key = voicePref + "|" + text;
+  if (audioCache.has(key)) return audioCache.get(key);
+  const p = (async () => {
+    if (voiceOff || !ctx) return null;
+    try {
+      const r = await fetch("/api/speak", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, voice: voicePref }) });
+      if (r.status === 501) { voiceOff = true; return null; }
+      if (!r.ok) return null;
+      const d = await r.json();
+      const bytes = Uint8Array.from(atob(d.audio), c => c.charCodeAt(0));
+      return await ctx.decodeAudioData(bytes.buffer);
+    } catch(e) { return null; }
+  })();
+  audioCache.set(key, p);
+  if (audioCache.size > 60) audioCache.delete(audioCache.keys().next().value);
+  return p;
+}
+function pickVoice(){
+  const vs = ("speechSynthesis" in window) ? speechSynthesis.getVoices().filter(v => /^en(-|_)(US|GB)/i.test(v.lang)) : [];
+  const male = /\bmale\b|christopher|roger|eric|guy|davis|tom|daniel|ryan|thomas|brian|andrew|aaron|alex|david|mark|fred|arthur|oliver/i;
+  const female = /female|michelle|jenny|samantha|allison|ava|aria|emma|sonia|libby|susan|serena|kate|zira|joanna|google us english|google uk english female/i;
+  const want = voicePref === "woman" ? (v => female.test(v.name)) : (v => male.test(v.name) && !female.test(v.name));
+  const natural = vs.filter(v => /natural|online|enhanced|premium/i.test(v.name) && want(v));
+  const pool = natural.length ? natural : vs.filter(want);
+  return pool[0] || vs[0] || null;
+}
+if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => {};
+let sayId = 0;
+function stopSound(){
+  sayId++;
+  try { if (srcNode) { srcNode.onended = null; srcNode.stop(); } } catch(e) {}
+  srcNode = null;
+  try { speechSynthesis.cancel(); } catch(e) {}
+}
+// Speaks text; calls done() when finished (unless stopped first)
+async function say(text, done){
+  stopSound();
+  const id = sayId;
+  const buf = await getAudio(text);
+  if (id !== sayId) return;
+  if (buf && ctx) {
+    srcNode = ctx.createBufferSource(); srcNode.buffer = buf; srcNode.connect(ctx.destination);
+    srcNode.onended = () => { if (id === sayId) done && done(); };
+    srcNode.start(); return;
+  }
+  if ("speechSynthesis" in window) {
+    const parts = text.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [text];
+    const v = pickVoice(); let last = null;
+    parts.forEach(p => { const u = new SpeechSynthesisUtterance(p); if (v) u.voice = v; u.rate = 0.9; speechSynthesis.speak(u); last = u; });
+    if (last) last.onend = () => { if (id === sayId) done && done(); };
+    return;
+  }
+  // no voice at all: give reading time instead
+  setTimeout(() => { if (id === sayId) done && done(); }, Math.max(6000, text.split(/\s+/).length * 450));
+}
+function sayAlone(text){ if (playing) return; say(text); }
+
+/* ---------- microphone ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false;
+if (!SR) {
+  $("hint").textContent = "Tap the box, then the 🎤 on your keyboard to speak. Or just type.";
+  $("mic").onclick = () => { unlock(); $("q").focus(); };
+} else {
+  rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.continuous = false;
+  rec.onresult = e => { let s = ""; for (const r of e.results) s += r[0].transcript; $("q").value = s; };
+  rec.onend = () => {
+    listening = false; $("mic").classList.remove("listening"); $("mic").textContent = "🎤";
+    if ($("q").value.trim()) { $("hint").textContent = "Look right? Tap Show me. (Or tap the microphone to try again.)"; $("go").classList.add("ready"); }
+    else $("hint").textContent = "Didn't catch that. Tap the microphone and try again.";
+  };
+  rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $("hint").textContent = "The microphone is blocked. Allow it in your browser, or type instead."; };
+  $("mic").onclick = () => {
+    unlock();
+    if (listening) { rec.stop(); return; }
+    pause(); $("q").value = ""; $("go").classList.remove("ready");
+    try { rec.start(); listening = true; $("mic").classList.add("listening"); $("mic").textContent = "👂"; $("hint").textContent = "Listening… go ahead and ask."; } catch(e) {}
+  };
+}
+$("go").onclick = () => { unlock(); const t = $("q").value.trim(); if (t || photo) ask(t || "What era is this photo from, and what was life like then?"); else { $("q").focus(); $("hint").textContent = "Type or say a question first."; } };
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") $("go").click(); });
+
+/* ---------- shared photo ---------- */
+let photo = "";
+$("file").onchange = async e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  try {
+    const url = URL.createObjectURL(f); const img = new Image();
+    await new Promise((ok, bad) => { img.onload = ok; img.onerror = bad; img.src = url; });
+    const max = 1400, s = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement("canvas"); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    const data = c.toDataURL("image/jpeg", 0.85);
+    photo = data.split(",")[1];
+    $("thumb").src = data; $("thumb").classList.remove("hide"); $("clearPhoto").classList.remove("hide");
+    $("photoHint").textContent = "Got it. Ask about it, or just tap Show me.";
+    $("go").classList.add("ready");
+    URL.revokeObjectURL(url);
+  } catch(err) { toast("That picture couldn't be opened. Try a JPG or PNG."); }
+  e.target.value = "";
+};
+$("clearPhoto").onclick = clearPhoto;
+function clearPhoto(){ photo = ""; $("thumb").classList.add("hide"); $("clearPhoto").classList.add("hide"); $("photoHint").textContent = ""; }
+
+/* ---------- the show ---------- */
+let show = null, slides = [], pics = [], idx = 0, playing = false, busy = false, advanceTimer = 0, layer = 0, lastQ = "", used = new Set();
+const LOAD_MSGS = ["Coming right up…", "Threading the projector…", "Looking through the archives…", "Finding the perfect pictures…", "Dimming the lights…"];
+
+async function ask(q, opts = {}){
+  if (busy) return;
+  busy = true; pause(); stopSound();
+  lastQ = q;
+  $("show").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("err").classList.add("hide");
+  $("theater").classList.remove("open");
+  $("loading").classList.add("on");
+  let m = 0, n = 5; $("loadMsg").textContent = LOAD_MSGS[0]; $("leadNum").textContent = n;
+  const msgTimer = setInterval(() => { n = n > 1 ? n - 1 : 5; $("leadNum").textContent = n; if (n === 5 || n === 3) { m = Math.min(m + 1, LOAD_MSGS.length - 1); $("loadMsg").textContent = LOAD_MSGS[m]; } }, 1000);
+  try {
+    let r;
+    const sendPhoto = photo && !opts.more;
+    if (opts.more || sendPhoto) {
+      r = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ q, more: !!opts.more, prev: opts.prev || "", context: opts.context || "", image: sendPhoto ? photo : "" }) });
+    } else {
+      r = await fetch("/api/ask?q=" + encodeURIComponent(q.toLowerCase()));
+    }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.slides) throw new Error(d.reason || "S6");
+    if (sendPhoto) clearPhoto();
+    $("q").value = ""; $("go").classList.remove("ready"); $("hint").textContent = "Tap the red microphone and ask out loud, or type your question.";
+    startShow(d);
+  } catch(e) {
+    $("err").textContent = "Sorry, the film slipped off the projector. Please try again in a moment. (code " + String(e.message || "S6").slice(0, 4) + ")";
+    $("err").classList.remove("hide");
+  } finally {
+    clearInterval(msgTimer); $("loading").classList.remove("on"); busy = false;
+    setTimeout(() => $("theater").classList.add("open"), 150);
+  }
+}
+
+function startShow(d){
+  show = d; slides = d.slides; pics = slides.map(() => undefined); used = new Set(); idx = 0;
+  $("showTitle").textContent = d.title || "Remember When";
+  $("nowLab").textContent = d.type === "show" ? "Now showing" : "A note from the projection booth";
+  const isShow = d.type === "show";
+  $("tellMore").classList.toggle("hide", !isShow);
+  $("memQ").textContent = d.memory_prompt || "What do you remember about this? Share a story with someone today.";
+  $("dyk").textContent = d.did_you_know || ""; $("dykBox").classList.toggle("hide", !d.did_you_know);
+  $("nextGrid").innerHTML = "";
+  (d.more || []).forEach(t => { const b = document.createElement("button"); b.textContent = t; b.onclick = () => { unlock(); ask(t); }; $("nextGrid").appendChild(b); });
+  // dots
+  $("dots").innerHTML = "";
+  for (let i = 0; i <= slides.length; i++) {
+    if (i === slides.length && !isShow) break;
+    const b = document.createElement("button"); b.setAttribute("aria-label", i < slides.length ? "Picture " + (i + 1) : "The end"); b.onclick = () => go(i, playing); $("dots").appendChild(b);
+  }
+  slides.forEach((s, i) => findPic(i));
+  go(0, true);
+  // warm up the first two narrations
+  getAudio(lineFor(0)); if (slides[1]) getAudio(lineFor(1));
+}
+
+async function fetchPics(q){
+  if (!q) return [];
+  try { const r = await fetch("/api/images?q=" + encodeURIComponent(q)); const d = await r.json(); return d.images || []; } catch(e) { return []; }
+}
+async function findPic(i){
+  const s = slides[i]; const run = show;
+  let list = await fetchPics(s.image_query);
+  if (!list.filter(p => !used.has(p.src)).length) list = list.concat(await fetchPics(s.image_backup));
+  if (run !== show) return;
+  const pick = list.find(p => !used.has(p.src)) || null;
+  if (pick) { used.add(pick.src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = pick.src; }
+  pics[i] = pick;
+  if (i === idx) paintPhoto(i);
+}
+
+function lineFor(i){
+  const s = slides[i]; if (!s) return "";
+  return (i === 0 && show.intro ? show.intro + " " : "") + (s.heading ? s.heading + ". " : "") + s.text;
+}
+const total = () => slides.length + (show && show.type === "show" ? 1 : 0);
+
+function go(i, autoplay){
+  if (!show) return;
+  $("morePh").classList.remove("hide");
+  clearTimeout(advanceTimer); stopSound();
+  idx = Math.max(0, Math.min(i, total() - 1));
+  const atEnd = idx >= slides.length;
+  $("slideArea").classList.toggle("hide", atEnd);
+  $("endArea").classList.toggle("hide", !atEnd);
+  [...$("dots").children].forEach((b, k) => b.classList.toggle("on", k === idx));
+  $("count").textContent = atEnd ? "The End" : "Scene " + (idx + 1) + " of " + slides.length;
+  $("prev").disabled = idx === 0; $("next").disabled = idx >= total() - 1;
+  $("photoLinks").classList.add("hide");
+  if (atEnd) {
+    paintCard("The End", "Thanks for the memories", "");
+    $("year").classList.add("hide");
+    setPlaying(false);
+    if (autoplay) say($("memQ").textContent);
+    return;
+  }
+  const s = slides[idx];
+  $("hd").textContent = s.heading || "";
+  $("tx").textContent = s.text;
+  $("year").textContent = s.year || ""; $("year").classList.toggle("hide", !s.year);
+  paintPhoto(idx);
+  buildLinks(s);
+  if (autoplay) { setPlaying(true); narrate(idx); } else setPlaying(false);
+}
+function narrate(i){
+  if (slides[i + 1]) getAudio(lineFor(i + 1));
+  say(lineFor(i), () => {
+    if (!playing || idx !== i) return;
+    advanceTimer = setTimeout(() => { if (playing && idx === i) go(i + 1, true); }, 1800);
+  });
+}
+function setPlaying(on){ playing = on; $("play").textContent = on ? "❚❚ Pause" : "▶ Play"; $("play").setAttribute("aria-label", on ? "Pause the slide show" : "Play the slide show"); }
+function pause(){ clearTimeout(advanceTimer); if (playing) { setPlaying(false); stopSound(); } }
+$("play").onclick = () => { unlock(); if (!show) { $("q").focus(); return; } if (playing) pause(); else { setPlaying(true); narrate(idx); } };
+$("prev").onclick = () => { unlock(); go(idx - 1, playing); };
+$("next").onclick = () => { unlock(); go(idx + 1, playing); };
+$("again").onclick = () => { unlock(); go(0, true); };
+$("newQ").onclick = () => { stopSound(); window.scrollTo({ top: 0, behavior: "smooth" }); setTimeout(() => $("mic").click(), 400); };
+$("tellMore").onclick = () => {
+  unlock();
+  const prev = slides.map(s => s.heading + ": " + s.text).join("\n");
+  ask("Tell me more about " + (show.title || lastQ), { more: true, prev, context: show.title || lastQ });
+};
+$("morePh").onclick = () => { $("photoLinks").classList.toggle("hide"); };
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || !show) return;
+  if (e.key === "ArrowRight") $("next").click();
+  else if (e.key === "ArrowLeft") $("prev").click();
+  else if (e.key === " " && e.target === document.body) { e.preventDefault(); $("play").click(); }
+});
+
+/* ---------- painting the frame ---------- */
+function esc(s){ return String(s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c])); }
+function swapLayer(html){
+  layer = 1 - layer;
+  const on = $("L" + layer), off = $("L" + (1 - layer));
+  on.innerHTML = html; on.classList.add("on"); off.classList.remove("on");
+}
+function paintCard(big, head, sub){
+  swapLayer(`<div class="card"><div class="yr">${esc(big)}</div><div class="hd">${esc(head)}</div>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</div>`);
+  $("credit").innerHTML = "";
+}
+function paintPhoto(i){
+  if (i !== idx || i >= slides.length) return;
+  const s = slides[i], p = pics[i];
+  if (p === undefined) { paintCard(s.year || "…", s.heading, "Finding a photo…"); return; }
+  if (!p) { paintCard(s.year || "★", s.heading, ""); $("credit").textContent = "No free-to-use photo turned up for this one. Tap “More photos like this” to search the archives."; return; }
+  const safe = esc(p.src);
+  swapLayer(`<div class="blur" style="background-image:url('${safe}')"></div><img class="kb" src="${safe}" alt="${esc(p.title || s.heading)}" referrerpolicy="no-referrer">`);
+  const img = $("L" + layer).querySelector("img");
+  img.onerror = () => { if (idx === i) { pics[i] = null; paintPhoto(i); } };
+  $("credit").innerHTML = `Photo: ${esc(p.title || "Untitled")} · ${esc(p.credit)} · ${esc(p.license)} · <a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.source)}</a>`;
+}
+
+/* ---------- more photo sources ---------- */
+const SOURCES = [
+  ["Library of Congress", "free to use", q => "https://www.loc.gov/photos/?q=" + q],
+  ["National Archives", "public domain", q => "https://catalog.archives.gov/search?q=" + q + "&typeOfMaterials=Photographs%20and%20other%20Graphic%20Materials"],
+  ["Wikimedia Commons", "free licenses", q => "https://commons.wikimedia.org/w/index.php?title=Special:MediaSearch&type=image&search=" + q],
+  ["Smithsonian", "open access", q => "https://www.si.edu/search/collection-images?edan_q=" + q],
+  ["NY Public Library", "public domain", q => "https://digitalcollections.nypl.org/search/index?utf8=%E2%9C%93&filters%5Brights%5D=pd&keywords=" + q],
+  ["Flickr Commons", "no known restrictions", q => "https://www.flickr.com/search/?is_commons=1&text=" + q],
+  ["PICRYL", "public domain", q => "https://picryl.com/search?q=" + q],
+  ["Openverse", "free licenses", q => "https://openverse.org/search/image?q=" + q],
+  ["Pexels", "modern, free", q => "https://www.pexels.com/search/" + q + "/"],
+  ["Unsplash", "modern, free", q => "https://unsplash.com/s/photos/" + q]
+];
+function buildLinks(s){
+  const q = encodeURIComponent(s.image_query || s.heading || "vintage");
+  $("links").innerHTML = SOURCES.map(([name, note, f]) => `<a href="${esc(f(q))}" target="_blank" rel="noopener">${esc(name)}<small>${esc(note)}</small></a>`).join("");
+}
+
+/* ---------- welcome ---------- */
+paintCard("Now Showing", "Your memories, on the big screen", "Pick a decade or ask a question to begin");
+$("prev").disabled = true; $("next").disabled = true; $("morePh").classList.add("hide");
+</script>
+</body>
+</html>
