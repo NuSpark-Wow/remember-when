@@ -119,6 +119,18 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
 .caption p{margin:0;font-size:1.08rem;line-height:1.6;color:var(--stage-ink);max-width:46em}
 .credit{font-size:.66rem;color:#bfae8e;margin-top:10px;line-height:1.5}
 .credit a{color:#e9c983}
+.betterPic{margin:12px 0 0;background:#2a221b;border-radius:14px;padding:14px 16px}
+.betterPic .note{margin:0;font-size:.78rem;color:#d9c7a4;line-height:1.5}
+.betterPic .note b{color:#fff}
+.betterPic .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.betterPic .acts button{border:0;border-radius:999px;min-height:46px;padding:0 16px;font-weight:700;font-size:.8rem;background:#3a2f25;color:#fff}
+.betterPic .acts button.main{background:var(--gold);color:#1c1712}
+.betterPic .ask2{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.betterPic .ask2 input{flex:1;min-width:200px;height:52px;border:2px solid #5c4c3c;border-radius:12px;background:#fffaf0;color:var(--ink);padding:0 14px;font-size:.9rem}
+.betterPic .ask2 .wmic{flex:none;width:52px;height:52px;border-radius:50%;padding:0;font-size:22px;background:var(--red);box-shadow:0 3px 0 var(--red-d)}
+.betterPic .ask2 .wmic.listening{background:var(--gold);box-shadow:0 0 0 6px rgba(196,149,47,.3)}
+.betterPic .ask2 button{border:0;border-radius:12px;height:52px;padding:0 18px;font-weight:700;font-size:.85rem;background:var(--red);color:#fff}
+.betterPic .status{margin-top:8px;font-size:.8rem;font-weight:700;color:#e9c983;min-height:1.2em}
 
 .ctrls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 6px 4px}
 .cbtn{border:0;border-radius:14px;padding:0 20px;min-height:58px;font-weight:700;font-size:1rem;background:#3a2f25;color:#fff}
@@ -223,7 +235,13 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <div class="seats" aria-hidden="true"></div>
     </div>
     <div id="slideArea">
-      <div class="caption"><h3 id="hd">Ask about any time you remember</h3><p id="tx">Pick a decade or a topic above, or ask your own question. You'll get a short slide show of real archive photos, read aloud, one picture at a time.</p><div class="credit" id="credit"></div></div>
+      <div class="caption"><h3 id="hd">Ask about any time you remember</h3><p id="tx">Pick a decade or a topic above, or ask your own question. You'll get a short slide show of real archive photos, read aloud, one picture at a time.</p><div class="credit" id="credit"></div>
+        <div class="betterPic hide" id="betterPic">
+          <p class="note"><b>Not quite the right picture?</b> We only use photos that are free to share, and our AI picks the closest match it can find, so sometimes it misses. Tell us what you'd like to see and we'll look for a better one, if one is available.</p>
+          <div class="acts"><button class="main" id="describeBtn">✏️ Describe the picture I'd like</button><button id="anotherBtn">🔄 Show me a different one</button></div>
+          <div class="ask2 hide" id="ask2"><button class="wmic" id="wantMic" aria-label="Say the picture you'd like">🎤</button><input id="wantBox" type="text" maxlength="200" placeholder="For example: Abbott and Costello on stage in suits" aria-label="Describe the picture you'd like"><button id="wantGo">Find it</button></div>
+          <div class="status" id="picStatus" aria-live="polite"></div>
+        </div></div>
       <div class="ctrls" id="ctrls">
         <button class="cbtn" id="prev" aria-label="Previous picture">◀ Back</button>
         <button class="cbtn play" id="play">▶ Play</button>
@@ -431,7 +449,7 @@ $("clearPhoto").onclick = clearPhoto;
 function clearPhoto(){ photo = ""; $("thumb").classList.add("hide"); $("clearPhoto").classList.add("hide"); $("photoHint").textContent = ""; }
 
 /* ---------- the show ---------- */
-let show = null, slides = [], pics = [], idx = 0, playing = false, busy = false, advanceTimer = 0, layer = 0, lastQ = "", used = new Set();
+let cands = [], show = null, slides = [], pics = [], idx = 0, playing = false, busy = false, advanceTimer = 0, layer = 0, lastQ = "", used = new Set();
 const LOAD_MSGS = ["Coming right up…", "Threading the projector…", "Looking through the archives…", "Finding the perfect pictures…", "Dimming the lights…"];
 
 async function ask(q, opts = {}){
@@ -468,7 +486,7 @@ async function ask(q, opts = {}){
 }
 
 function startShow(d){
-  show = d; slides = d.slides; pics = slides.map(() => undefined); used = new Set(); idx = 0;
+  show = d; slides = d.slides; pics = slides.map(() => undefined); cands = slides.map(() => []); used = new Set(); idx = 0;
   $("showTitle").textContent = d.title || "Remember When";
   $("nowLab").textContent = d.type === "show" ? "Now showing" : "A note from the projection booth";
   const isShow = d.type === "show";
@@ -500,6 +518,7 @@ async function findPic(i){
   let list = await fetchPics(s.image_query, scene);
   if (!list.filter(p => !used.has(p.src)).length) list = list.concat(await fetchPics(s.image_backup, scene));
   if (run !== show) return;
+  cands[i] = list;
   const pick = list.find(p => !used.has(p.src)) || null;
   if (pick) { used.add(pick.src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = pick.src; }
   pics[i] = pick;
@@ -514,7 +533,7 @@ const total = () => slides.length + (show && show.type === "show" ? 1 : 0);
 
 function go(i, autoplay){
   if (!show) return;
-  $("morePh").classList.remove("hide");
+  $("morePh").classList.remove("hide"); $("betterPic").classList.remove("hide");
   clearTimeout(advanceTimer); stopSound();
   idx = Math.max(0, Math.min(i, total() - 1));
   const atEnd = idx >= slides.length;
@@ -537,6 +556,7 @@ function go(i, autoplay){
   $("year").textContent = s.year || ""; $("year").classList.toggle("hide", !s.year);
   paintPhoto(idx);
   buildLinks(s);
+  $("ask2").classList.add("hide"); $("picStatus").textContent = ""; $("wantBox").value = "";
   if (autoplay) { setPlaying(true); narrate(idx); } else setPlaying(false);
 }
 function narrate(i){
@@ -588,6 +608,69 @@ function paintPhoto(i){
   img.onerror = () => { if (idx === i) { pics[i] = null; paintPhoto(i); } };
   $("credit").innerHTML = `Photo: ${esc(p.title || "Untitled")} · ${esc(p.credit)} · ${esc(p.license)} · <a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.source)}</a>`;
 }
+
+/* ---------- "not quite the right picture?" ---------- */
+function usePic(i, p){
+  if (pics[i] && pics[i].src) used.delete(pics[i].src);
+  used.add(p.src); pics[i] = p;
+  const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = p.src;
+  paintPhoto(i);
+}
+$("describeBtn").onclick = () => {
+  pause(); $("ask2").classList.remove("hide"); $("wantBox").focus();
+  $("picStatus").textContent = "The show is paused. Tap the red microphone and say the picture you'd like, or type it. Then tap Find it.";
+};
+// Speak the picture you'd like (uses the browser's own speech-to-text; nothing is recorded)
+let wantRec = null, wantListening = false;
+if (SR) {
+  wantRec = new SR(); wantRec.lang = "en-US"; wantRec.interimResults = true; wantRec.continuous = false;
+  wantRec.onresult = e => { let t = ""; for (const r of e.results) t += r[0].transcript; $("wantBox").value = t; };
+  wantRec.onend = () => {
+    wantListening = false; $("wantMic").classList.remove("listening"); $("wantMic").textContent = "🎤";
+    $("picStatus").textContent = $("wantBox").value.trim() ? "Look right? Tap Find it. (Or tap the microphone to try again.)" : "Didn't catch that. Tap the microphone and try again.";
+  };
+  wantRec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $("picStatus").textContent = "The microphone is blocked. Allow it in your browser, or type instead."; };
+  $("wantMic").onclick = () => {
+    if (wantListening) { wantRec.stop(); return; }
+    stopSound(); $("wantBox").value = "";
+    try { wantRec.start(); wantListening = true; $("wantMic").classList.add("listening"); $("wantMic").textContent = "👂"; $("picStatus").textContent = "Listening… say the picture you'd like."; } catch(e) {}
+  };
+} else {
+  $("wantMic").onclick = () => { $("wantBox").focus(); $("picStatus").textContent = "Tap the 🎤 on your keyboard to speak, or just type."; };
+}
+$("anotherBtn").onclick = () => {
+  const i = idx; if (!show || i >= slides.length) return;
+  pause();
+  const cur = pics[i] && pics[i].src;
+  const list = cands[i] || [];
+  const start = Math.max(0, list.findIndex(p => p.src === cur) + 1);
+  const next = list.slice(start).concat(list.slice(0, start)).find(p => p.src !== cur && !used.has(p.src));
+  if (next) { usePic(i, next); $("picStatus").textContent = "Here's another one. Tap Play when you're ready to continue."; }
+  else $("picStatus").textContent = "That was the only good match we found. Try describing the picture you'd like instead.";
+};
+async function findWanted(){
+  const i = idx; const want = $("wantBox").value.trim();
+  if (!want) { $("wantBox").focus(); return; }
+  const s = slides[i]; const scene = (s.heading ? s.heading + ". " : "") + s.text;
+  $("wantGo").disabled = true; $("picStatus").textContent = "Searching the archives…";
+  try {
+    const r = await fetch("/api/images?q=x&want=" + encodeURIComponent(want) + "&scene=" + encodeURIComponent(scene.slice(0, 400)));
+    const d = await r.json();
+    const list = (d.images || []).filter(p => !used.has(p.src) || (pics[i] && pics[i].src === p.src));
+    if (i !== idx) return;
+    if (list.length) {
+      cands[i] = list.concat(cands[i] || []);
+      usePic(i, list[0]);
+      $("picStatus").textContent = list.length > 1 ? "How's this? Tap \u201cShow me a different one\u201d to see more. Tap Play to continue." : "How's this? Tap Play to continue.";
+      $("ask2").classList.add("hide");
+    } else {
+      $("picStatus").textContent = "Sorry, we couldn't find a free-to-use photo of that. Many famous pictures are still under copyright. Try different words, or tap \u201cMore photos like this\u201d.";
+    }
+  } catch(e) { $("picStatus").textContent = "The search hiccuped. Please try again."; }
+  finally { $("wantGo").disabled = false; }
+}
+$("wantGo").onclick = findWanted;
+$("wantBox").addEventListener("keydown", e => { if (e.key === "Enter") findWanted(); });
 
 /* ---------- more photo sources ---------- */
 const SOURCES = [
