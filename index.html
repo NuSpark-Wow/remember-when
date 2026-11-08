@@ -272,15 +272,24 @@ const store = { get(k){ try { return localStorage.getItem(k); } catch(e) { retur
 
 /* ---------- ideas ---------- */
 const DECADES = {
+  "The '20s": ["What were speakeasies like during Prohibition?", "What was the Charleston dance craze?", "What was it like hearing radio for the first time?", "What was it like to drive a Model T Ford?", "What were silent movies and the first talkies like?"],
+  "The '30s": ["What was everyday life like during the Great Depression?", "What did families listen to on the radio in the 1930s?", "What was the 1939 New York World's Fair like?", "What were the big movie musicals of the 1930s?", "What was the Dust Bowl?"],
   "The '40s": ["What was life like on the home front in the 1940s?", "What did families listen to on the radio in the 1940s?", "What was a soda fountain like?", "What was it like dancing to the big bands?", "What was it like when World War II ended in 1945?"],
   "The '50s": ["What was it like going to a drive-in movie?", "What was a 1950s diner like?", "What was it like when families got their first TV?", "What were the classic cars of the 1950s?", "What was it like when rock and roll first arrived?"],
   "The '60s": ["What was it like watching the moon landing in 1969?", "What toys did kids play with in the 1960s?", "What was the British Invasion in music?", "What did a 1960s kitchen look like?", "What were the muscle cars of the 1960s?"],
   "The '70s": ["What were roller rinks and disco like in the 1970s?", "What was the 1970s gas crisis like?", "What did a 1970s living room look like?", "What was the CB radio craze?", "What was the 1976 Bicentennial like?"],
-  "The '80s": ["What were video arcades like in the 1980s?", "What was it like to have a Walkman?", "What were the first home computers like?", "What were shopping malls like in the 1980s?", "What was it like when MTV started?"]
+  "The '80s": ["What were video arcades like in the 1980s?", "What was it like to have a Walkman?", "What were the first home computers like?", "What were shopping malls like in the 1980s?", "What was it like when MTV started?"],
+  "The '90s": ["What was it like going online with dial-up internet?", "What was the Beanie Babies craze?", "What was it like renting movies at the video store?", "What were pagers and the first cell phones like?", "What was the Y2K scare?"]
 };
 const TOPICS = {
   "Music & Radio": ["What was it like listening to a jukebox?", "What was a transistor radio?", "What were record stores like?", "What were 45s and LPs?", "What was it like listening to radio shows before TV?"],
   "TV & Movies": ["What were the old movie palaces like?", "What were Saturday matinees like for kids?", "What were TV dinners?", "What was it like adjusting rabbit-ear antennas?", "Why did TV stations sign off at night?"],
+  "Entertainment": ["What were vaudeville shows like?", "What was it like when the circus came to town?", "What were amusement parks like years ago?", "What was The Ed Sullivan Show?", "What were game shows like on early TV?"],
+  "Celebrities": ["What was it like when Elvis Presley first became famous?", "Who was Lucille Ball?", "What was Frank Sinatra like in his heyday?", "What was Johnny Carson's Tonight Show like?", "What was it like when Marilyn Monroe was a star?"],
+  "Sports": ["What was baseball like in Babe Ruth's day?", "What was it like watching Muhammad Ali fight?", "What was the 1980 Miracle on Ice?", "What was Wilt Chamberlain's 100-point game?", "What was it like going to a ballgame in the 1950s?"],
+  "Crazes & Fads": ["What was the pet rock craze?", "What was flagpole sitting in the 1920s?", "What were mood rings?", "What was the Rubik's Cube craze?", "What was the Cabbage Patch Kids craze?"],
+  "Fashion & Style": ["What were poodle skirts?", "Why did everyone wear hats years ago?", "What did people wear in the 1970s?", "What were bell-bottoms?", "What was 1980s big hair and shoulder pads?"],
+  "Holidays": ["What were department store Christmas windows like?", "What were Halloween costumes like years ago?", "What was the Fourth of July like in small towns?", "What were aluminum Christmas trees?", "What was it like watching the Thanksgiving Day parade on TV?"],
   "Cars & Travel": ["What was it like driving Route 66?", "What were family road trips in a station wagon like?", "What were full-service gas stations like?", "What were roadside motels like?", "When were the interstate highways built?"],
   "Everyday Life": ["What was it like when the milkman delivered?", "What were party telephone lines?", "What did groceries cost in the 1950s?", "What was the Sears catalog like?", "What were S&H Green Stamps?"],
   "School Days": ["What was a one-room schoolhouse like?", "What were duck and cover drills?", "What were metal lunch boxes like?", "What was school picture day like years ago?", "What were slide rules?"],
