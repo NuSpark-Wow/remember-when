@@ -37,9 +37,13 @@ DECIDE THE TYPE FIRST:
 THE SLIDE SHOW ("slides"): 6 to 7 slides that tell a story in order, like a photo album. Each slide has:
 - "heading": a short, warm headline (3 to 7 words).
 - "text": 2 or 3 short sentences read aloud (35 to 60 words). Plain, conversational, vivid sensory details (sounds, smells, prices, how things felt). Speak to the viewer naturally ("If you grew up in the fifties, you may remember..."). No markdown, no lists, no emojis.
-- "year": the year or decade the slide is about (for example "1957" or "1960s"), or "".
-- "image_query": 2 to 5 plain search words for a real archive photo of what the slide shows. Use literal, physical things a photographer of the time would have captured, and add the decade (for example "1950s drive-in theater", "soda fountain counter 1940s", "1960s family television living room", "Route 66 motel sign"). A famous person's or place's name is fine when the slide is about them.
-- "image_backup": a broader 1 to 3 word search in case the first finds nothing (for example "drive-in theater", "soda fountain", "television set").
+- "year": the year or decade the slide's own text is about (for example "1957" or "1960s"). It must match what the slide says. Use "" for the wrap-up slide or when the slide spans many decades.
+- "image_query": 2 to 4 plain search words that an archive photo's TITLE would contain. Photo archives match titles literally, so:
+  * For a famous person, use just their name, with Capital Letters (for example "Jimi Hendrix", "Elvis Presley"). Add one word only if it is part of the photo itself, like "Jimi Hendrix guitar". Never add an event name the person is not pictured at, and never use song or album titles.
+  * For a famous place or event, use its proper name with Capital Letters (for example "Route 66", "Woodstock festival", "Monterey Pop Festival", "Shea Stadium").
+  * For everyday things, use the physical thing plus its decade, in lowercase (for example "1950s drive-in theater", "soda fountain 1940s", "1960s television set", "jukebox").
+  * No feelings, no abstract ideas, no brand slogans: a photographer could not take a picture of "nostalgia" or "freedom".
+- "image_backup": a broader, everyday 1 to 3 word search that would still fit the slide if the first finds nothing (for example "electric guitar", "rock concert crowd", "drive-in theater", "television set"). Never a name.
 
 The first slide sets the scene. The last slide is a gentle wrap-up that invites a memory.
 
