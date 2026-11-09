@@ -378,6 +378,17 @@ function stopSound(){
   srcNode = null;
   try { speechSynthesis.cancel(); } catch(e) {}
 }
+// Evens out loudness so both voices play at the same strong level (a quiet clip gets turned up; a limiter stops distortion)
+function leveled(buf){
+  let sum = 0, n = 0; const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i += 16) { sum += d[i] * d[i]; n++; }
+  const rms = Math.sqrt(sum / Math.max(1, n)) || 0.05;
+  const g = ctx.createGain(); g.gain.value = Math.min(4, Math.max(0.6, 0.16 / rms));
+  const lim = ctx.createDynamicsCompressor();
+  lim.threshold.value = -6; lim.knee.value = 4; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.15;
+  g.connect(lim); lim.connect(ctx.destination);
+  return g;
+}
 // Speaks text; calls done() when finished (unless stopped first)
 async function say(text, done){
   stopSound();
@@ -385,7 +396,7 @@ async function say(text, done){
   const buf = await getAudio(text);
   if (id !== sayId) return;
   if (buf && ctx) {
-    srcNode = ctx.createBufferSource(); srcNode.buffer = buf; srcNode.connect(ctx.destination);
+    srcNode = ctx.createBufferSource(); srcNode.buffer = buf; srcNode.connect(leveled(buf));
     srcNode.onended = () => { if (id === sayId) done && done(); };
     srcNode.start(); return;
   }
