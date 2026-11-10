@@ -195,6 +195,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <div class="brand">Remember When<small>A trip down memory lane, told in pictures</small></div>
     <div class="prefs">
       <div class="seg" role="group" aria-label="Narrator voice"><span class="lab">Voice</span><button id="vMan" class="on">Man</button><button id="vWoman">Woman</button><button id="vMute" aria-label="Mute: no voice, read the words">Mute</button></div>
+      <div class="seg" role="group" aria-label="Voice speed"><span class="lab">Speed</span><button id="sSlow">Slower</button><button id="sNormal" class="on">Normal</button><button id="sFast">Faster</button></div>
       <div class="seg" role="group" aria-label="Text size"><span class="lab">Text</span><button id="tN" class="on" aria-label="Regular text">A</button><button id="tB" aria-label="Large text" style="font-size:1rem">A</button><button id="tH" aria-label="Extra large text" style="font-size:1.2rem">A</button></div>
     </div>
   </header>
@@ -335,11 +336,21 @@ setSize(store.get("rw_size") || "n");
 const audioCache = new Map(); // text -> Promise<AudioBuffer|null>
 let ctx = null, voiceOff = false, srcNode = null, voicePref = ["woman", "mute"].includes(store.get("rw_voice")) ? store.get("rw_voice") : "man";
 function unlock(){
-  try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended") ctx.resume(); } catch(e) {}
-  try { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch(e) {}
+  try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended" && !midPause) ctx.resume(); } catch(e) {}
+  try { if ("speechSynthesis" in window && !midPause) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch(e) {}
 }
+let speedPref = ["slow", "fast"].includes(store.get("rw_speed")) ? store.get("rw_speed") : "normal";
+function setSpeed(p){
+  speedPref = p; audioCache.clear();
+  $("sSlow").classList.toggle("on", p === "slow"); $("sNormal").classList.toggle("on", p === "normal"); $("sFast").classList.toggle("on", p === "fast");
+  store.set("rw_speed", p);
+}
+function voiceRate(){ return speedPref === "slow" ? 0.8 : speedPref === "fast" ? 1.02 : 0.9; }
 function setVoicePref(p){ voicePref = p; $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman"); $("vMute").classList.toggle("on", p === "mute"); store.set("rw_voice", p); audioCache.clear(); }
-setVoicePref(voicePref);
+setVoicePref(voicePref); setSpeed(speedPref);
+$("sSlow").onclick = () => { setSpeed("slow"); unlock(); sayAlone("Slower speed."); };
+$("sNormal").onclick = () => { setSpeed("normal"); unlock(); sayAlone("Normal speed."); };
+$("sFast").onclick = () => { setSpeed("fast"); unlock(); sayAlone("Faster speed."); };
 $("vMan").onclick = () => { setVoicePref("man"); unlock(); sayAlone("Hello, and welcome to Remember When."); };
 $("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayAlone("Hello, and welcome to Remember When."); };
 // Mute: no voice at all. The show keeps going, giving time to read each slide.
@@ -347,12 +358,12 @@ $("vMute").onclick = () => { stopSound(); setVoicePref("mute"); if (playing) { c
 
 function getAudio(text){
   if (!text) return Promise.resolve(null);
-  const key = voicePref + "|" + text;
+  const key = voicePref + "|" + speedPref + "|" + text;
   if (audioCache.has(key)) return audioCache.get(key);
   const p = (async () => {
     if (voiceOff || !ctx || voicePref === "mute") return null;
     try {
-      const r = await fetch("/api/speak", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, voice: voicePref }) });
+      const r = await fetch("/api/speak", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, voice: voicePref, speed: speedPref }) });
       if (r.status === 501) { voiceOff = true; return null; }
       if (!r.ok) return null;
       const d = await r.json();
@@ -375,8 +386,10 @@ function pickVoice(){
 }
 if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => {};
 let sayId = 0;
+var midPause = false;   // paused partway through a slide's narration
 function stopSound(){
   sayId++;
+  if (midPause) { midPause = false; try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} }
   try { if (srcNode) { srcNode.onended = null; srcNode.stop(); } } catch(e) {}
   srcNode = null;
   try { speechSynthesis.cancel(); } catch(e) {}
@@ -401,13 +414,13 @@ async function say(text, done){
   if (id !== sayId) return;
   if (buf && ctx) {
     srcNode = ctx.createBufferSource(); srcNode.buffer = buf; srcNode.connect(leveled(buf));
-    srcNode.onended = () => { if (id === sayId) done && done(); };
+    srcNode.onended = () => { srcNode = null; if (id === sayId) done && done(); };
     srcNode.start(); return;
   }
   if ("speechSynthesis" in window) {
     const parts = text.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [text];
     const v = pickVoice(); let last = null;
-    parts.forEach(p => { const u = new SpeechSynthesisUtterance(p); if (v) u.voice = v; u.rate = 0.9; speechSynthesis.speak(u); last = u; });
+    parts.forEach(p => { const u = new SpeechSynthesisUtterance(p); if (v) u.voice = v; u.rate = voiceRate(); speechSynthesis.speak(u); last = u; });
     if (last) last.onend = () => { if (id === sayId) done && done(); };
     return;
   }
@@ -582,8 +595,20 @@ function narrate(i){
   });
 }
 function setPlaying(on){ playing = on; $("play").textContent = on ? "❚❚ Pause" : "▶ Play"; $("play").setAttribute("aria-label", on ? "Pause the slide show" : "Play the slide show"); }
-function pause(){ clearTimeout(advanceTimer); if (playing) { setPlaying(false); stopSound(); } }
-$("play").onclick = () => { unlock(); if (!show) { $("q").focus(); return; } if (playing) pause(); else { setPlaying(true); narrate(idx); } };
+function pause(){
+  clearTimeout(advanceTimer);
+  if (!playing) return;
+  setPlaying(false);
+  // a voice that is talking waits right where it is; Play picks up mid-sentence
+  if (voicePref !== "mute" && (srcNode || ("speechSynthesis" in window && speechSynthesis.speaking))) {
+    midPause = true;
+    try { if (ctx) ctx.suspend(); } catch(e) {}
+    try { speechSynthesis.pause(); } catch(e) {}
+  } else stopSound();
+}
+$("play").onclick = () => { unlock(); if (!show) { $("q").focus(); return; } if (playing) pause();
+  else if (midPause) { midPause = false; setPlaying(true); try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} }
+  else { setPlaying(true); narrate(idx); } };
 $("prev").onclick = () => { unlock(); go(idx - 1, playing); };
 $("next").onclick = () => { unlock(); go(idx + 1, playing); };
 $("again").onclick = () => { unlock(); go(0, true); };
