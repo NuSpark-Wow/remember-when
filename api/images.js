@@ -8,6 +8,9 @@
 // (for people and places, the name must be there). Sheet music, maps, flags, logos and
 // documents are skipped. If nothing fits, it retries with shorter searches: without the
 // year, then just the names.
+// v5: when the free archives have fewer than two good photos for a scene, the best photos from a
+// Google Images search (Serper; needs SERPER_API_KEY in Vercel) are added, credited with their website
+// and a link back. They go through the same photo check as the archive photos.
 // Add &debug=1 to the address to see what each source found.
 
 const UA = "RememberWhen/1.0 (nostalgia slide show; nusparkpublishing.com)";
@@ -142,6 +145,7 @@ Reply with only JSON like {"fits":[3,1]}: the numbers of the photos that fit, be
 // The site downloads each photo itself and hands it to Claude, because some archives
 // refuse direct requests from Claude. Photos that won't download are simply skipped.
 async function grab(src) {
+  if (!src) return null;
   const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 7000);
   try {
     const r = await fetch(src, { headers: { "User-Agent": UA }, signal: ctl.signal });
@@ -156,7 +160,7 @@ async function grab(src) {
 }
 
 async function lookCheck(scene, imgs) {
-  const files = await Promise.all(imgs.map(im => grab(im.src)));
+  const files = await Promise.all(imgs.map(async im => (await grab(im.src)) || (im.thumb ? await grab(im.thumb) : null)));
   const ok = imgs.map((im, i) => ({ im, f: files[i] })).filter(x => x.f);
   if (!ok.length) return [];
   imgs = ok.map(x => x.im);
@@ -236,6 +240,28 @@ async function wantToSearch(want, scene) {
   return [clean(j.query), clean(j.backup)].filter(Boolean);
 }
 
+// Google Images through Serper. Stock-photo sellers, shops and social sites are skipped.
+const SKIP_SITES = /(fbsbx|facebook|instagram|tiktok|twitter|x\.com|threads\.net|pinterest|pinimg|shutterstock|alamy|gettyimages|istockphoto|dreamstime|depositphotos|123rf|stock\.adobe|agefotostock|bigstock|vectorstock|freepik|ebay|amazon\.com|etsy|walmart|redbubble|teepublic|worthpoint)/i;
+async function fromWeb(q) {
+  const key = String(process.env.SERPER_API_KEY || "").trim(); if (!key) return [];
+  const ask = safe => fetch("https://google.serper.dev/images", { method: "POST", signal: AbortSignal.timeout(8000),
+    headers: { "X-API-KEY": key, "content-type": "application/json" },
+    body: JSON.stringify(safe ? { q, num: 20, gl: "us", hl: "en", safe: "active" } : { q, num: 20, gl: "us", hl: "en" }) });
+  let r = await ask(true); if (r.status === 400) r = await ask(false);
+  if (!r.ok) throw new Error("serper " + r.status);
+  const out = [];
+  for (const it of (await r.json()).images || []) {
+    const title = strip(it.title);
+    if (!it.imageUrl || !/^https:\/\//i.test(it.imageUrl) || /\.(svg|gif)(\?|$)/i.test(it.imageUrl)) continue;
+    if (SKIP_SITES.test((it.domain || "") + " " + (it.link || "")) || /(fbsbx|cdninstagram|pinimg|tiktokcdn|twimg)/i.test(it.imageUrl)) continue;
+    if ((it.imageWidth || 0) < 500 || BAD.test(title) || NOT_PHOTO.test(title)) continue;
+    const site = strip(it.source || it.domain || "").replace(/^www\./, "") || "the web";
+    out.push({ src: it.imageUrl, thumb: it.thumbnailUrl || "", title, credit: site, license: "From the web", source: site, link: it.link || "", web: true });
+    if (out.length >= 5) break;
+  }
+  return out;
+}
+
 async function findFor(q, scene, log, debug) {
   const t = terms(q);
   const look = !!(scene && process.env.ANTHROPIC_API_KEY);
@@ -247,6 +273,19 @@ async function findFor(q, scene, log, debug) {
       // if the check itself fails (a photo the checker can't open, a busy moment), fall back to the label match
       console.error("photo check failed:", e.message); if (debug) log.push({ check_error: e.message });
     }
+  }
+  // fewer than two good archive photos: add the best checked photos from the web
+  if (images.length < 2 && look && process.env.SERPER_API_KEY) {
+    try {
+      const web = await fromWeb(q);
+      if (debug) log.push({ web_search: q, found: web.length });
+      if (web.length) {
+        const fits = await lookCheck(scene, web);
+        if (debug) log.push({ web_fits: fits.length });
+        images = images.concat(fits.filter(w => !images.some(f => f.src === w.src)));
+        checked = true;
+      }
+    } catch (e) { console.error("web photos failed:", e.message); if (debug) log.push({ web_error: e.message }); }
   }
   return { images, checked, t };
 }

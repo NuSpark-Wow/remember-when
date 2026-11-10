@@ -40,6 +40,7 @@ THE SLIDE SHOW ("slides"): 6 to 7 slides that tell a story in order, like a phot
 - "year": the year or decade the slide's own text is about (for example "1957" or "1960s"). It must match what the slide says. Use "" for the wrap-up slide or when the slide spans many decades.
 - "image_query": 2 to 4 plain search words that an archive photo's TITLE would contain. Photo archives match titles literally, so:
   * For a famous person, use just their name, with Capital Letters (for example "Jimi Hendrix", "Elvis Presley"). Add one word only if it is part of the photo itself, like "Jimi Hendrix guitar". Never add an event name the person is not pictured at, and never use song or album titles.
+  * For a TV show, movie or band, use its exact title with Capital Letters plus one word saying what it is (for example "Leave It to Beaver TV show", "Bonanza TV show", "The Wizard of Oz movie", "The Supremes band"). For one of its stars, use the star's real full name.
   * For a famous place or event, use its proper name with Capital Letters (for example "Route 66", "Woodstock festival", "Monterey Pop Festival", "Shea Stadium").
   * For everyday things, use the physical thing plus its decade, in lowercase (for example "1950s drive-in theater", "soda fountain 1940s", "1960s television set", "jukebox").
   * No feelings, no abstract ideas, no brand slogans: a photographer could not take a picture of "nostalgia" or "freedom".
