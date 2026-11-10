@@ -346,7 +346,7 @@ function setSpeed(p){
   store.set("rw_speed", p);
 }
 function voiceRate(){ return speedPref === "slow" ? 0.8 : speedPref === "fast" ? 1.02 : 0.9; }
-function setVoicePref(p){ voicePref = p; $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman"); $("vMute").classList.toggle("on", p === "mute"); store.set("rw_voice", p); audioCache.clear(); }
+function setVoicePref(p){ voicePref = p; if (p === "man" || p === "woman") { lastVoice = p; store.set("rw_voice_last", p); } $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman"); $("vMute").classList.toggle("on", p === "mute"); store.set("rw_voice", p); audioCache.clear(); }
 setVoicePref(voicePref); setSpeed(speedPref);
 $("sSlow").onclick = () => { setSpeed("slow"); unlock(); sayAlone("Slower speed."); };
 $("sNormal").onclick = () => { setSpeed("normal"); unlock(); sayAlone("Normal speed."); };
@@ -354,7 +354,11 @@ $("sFast").onclick = () => { setSpeed("fast"); unlock(); sayAlone("Faster speed.
 $("vMan").onclick = () => { setVoicePref("man"); unlock(); sayAlone("Hello, and welcome to Remember When."); };
 $("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayAlone("Hello, and welcome to Remember When."); };
 // Mute: no voice at all. The show keeps going, giving time to read each slide.
-$("vMute").onclick = () => { stopSound(); setVoicePref("mute"); if (playing) { clearTimeout(advanceTimer); narrate(idx); } };
+var lastVoice = store.get("rw_voice_last") === "woman" ? "woman" : "man";
+$("vMute").onclick = () => {
+  // tap Mute again to bring back the last voice; a playing slide is read again from its start
+  if (voicePref === "mute") { setVoicePref(lastVoice); unlock(); if (playing) { clearTimeout(advanceTimer); narrate(idx); } else sayAlone("Voice on."); return; }
+  stopSound(); setVoicePref("mute"); if (playing) { clearTimeout(advanceTimer); narrate(idx); } };
 
 function getAudio(text){
   if (!text) return Promise.resolve(null);
