@@ -117,7 +117,8 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
 .caption{padding:16px 8px 6px}
 .caption h3{font-family:Fraunces,Georgia,serif;font-size:clamp(24px,3vw,34px);margin:0 0 8px;color:#fff;line-height:1.15}
 .caption p{margin:0;font-size:1.08rem;line-height:1.6;color:var(--stage-ink);max-width:46em}
-.credit{font-size:.66rem;color:#bfae8e;margin-top:10px;line-height:1.5}
+.credit{font-size:.85rem;color:#cdbd9c;margin-top:10px;line-height:1.55}
+.credit a.src{display:inline-block;margin-top:4px;font-weight:700;font-size:.95rem;padding:4px 0}
 .credit a{color:#e9c983}
 .betterPic{margin:12px 0 0;background:#2a221b;border-radius:14px;padding:14px 16px}
 .betterPic .note{margin:0;font-size:.78rem;color:#d9c7a4;line-height:1.5}
@@ -193,7 +194,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
   <header>
     <div class="brand">Remember When<small>A trip down memory lane, told in pictures</small></div>
     <div class="prefs">
-      <div class="seg" role="group" aria-label="Narrator voice"><span class="lab">Voice</span><button id="vMan" class="on">Man</button><button id="vWoman">Woman</button></div>
+      <div class="seg" role="group" aria-label="Narrator voice"><span class="lab">Voice</span><button id="vMan" class="on">Man</button><button id="vWoman">Woman</button><button id="vMute" aria-label="Mute: no voice, read the words">Mute</button></div>
       <div class="seg" role="group" aria-label="Text size"><span class="lab">Text</span><button id="tN" class="on" aria-label="Regular text">A</button><button id="tB" aria-label="Large text" style="font-size:1rem">A</button><button id="tH" aria-label="Extra large text" style="font-size:1.2rem">A</button></div>
     </div>
   </header>
@@ -272,7 +273,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
   <details class="sources">
     <summary>📚 Where the photos come from</summary>
     <ul>
-      <li>The slide shows look first in the <a href="https://www.loc.gov/free-to-use/" target="_blank" rel="noopener">Library of Congress</a> (only photos marked "no known restrictions"), then <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a> and <a href="https://openverse.org" target="_blank" rel="noopener">Openverse</a> (public domain and free Creative Commons licenses).</li>
+      <li>The slide shows look first in the <a href="https://www.loc.gov/free-to-use/" target="_blank" rel="noopener">Library of Congress</a> (only photos marked "no known restrictions"), then <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a> and <a href="https://openverse.org" target="_blank" rel="noopener">Openverse</a> (public domain and free Creative Commons licenses). When none of those truly fits a scene, the best photo from the web is shown, credited with a link to its source; it belongs to its owner. To ask for a photo to be removed, contact NuSpark Publishing at nusparkpublishing.com.</li>
       <li>Every picture shows its title, photographer or source, and license, with a link to its original page.</li>
       <li>More free archives worth a look: <a href="https://catalog.archives.gov" target="_blank" rel="noopener">National Archives</a>, <a href="https://www.si.edu/openaccess" target="_blank" rel="noopener">Smithsonian Open Access</a>, <a href="https://digitalcollections.nypl.org" target="_blank" rel="noopener">New York Public Library Digital Collections</a>, <a href="https://www.flickr.com/commons" target="_blank" rel="noopener">Flickr Commons</a>, and <a href="https://picryl.com" target="_blank" rel="noopener">PICRYL</a>.</li>
       <li>Many famous pictures from these decades, like TV shows, movie stars, album covers, and ads, are still under copyright. The narrator can talk about them, but the slides only show photos that are free to use.</li>
@@ -332,22 +333,24 @@ setSize(store.get("rw_size") || "n");
 
 /* ---------- audio ---------- */
 const audioCache = new Map(); // text -> Promise<AudioBuffer|null>
-let ctx = null, voiceOff = false, srcNode = null, voicePref = store.get("rw_voice") === "woman" ? "woman" : "man";
+let ctx = null, voiceOff = false, srcNode = null, voicePref = ["woman", "mute"].includes(store.get("rw_voice")) ? store.get("rw_voice") : "man";
 function unlock(){
   try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended") ctx.resume(); } catch(e) {}
   try { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch(e) {}
 }
-function setVoicePref(p){ voicePref = p; $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman"); store.set("rw_voice", p); audioCache.clear(); }
+function setVoicePref(p){ voicePref = p; $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman"); $("vMute").classList.toggle("on", p === "mute"); store.set("rw_voice", p); audioCache.clear(); }
 setVoicePref(voicePref);
 $("vMan").onclick = () => { setVoicePref("man"); unlock(); sayAlone("Hello, and welcome to Remember When."); };
 $("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayAlone("Hello, and welcome to Remember When."); };
+// Mute: no voice at all. The show keeps going, giving time to read each slide.
+$("vMute").onclick = () => { stopSound(); setVoicePref("mute"); if (playing) { clearTimeout(advanceTimer); narrate(idx); } };
 
 function getAudio(text){
   if (!text) return Promise.resolve(null);
   const key = voicePref + "|" + text;
   if (audioCache.has(key)) return audioCache.get(key);
   const p = (async () => {
-    if (voiceOff || !ctx) return null;
+    if (voiceOff || !ctx || voicePref === "mute") return null;
     try {
       const r = await fetch("/api/speak", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, voice: voicePref }) });
       if (r.status === 501) { voiceOff = true; return null; }
@@ -393,6 +396,7 @@ function leveled(buf){
 async function say(text, done){
   stopSound();
   const id = sayId;
+  if (voicePref === "mute") { setTimeout(() => { if (id === sayId) done && done(); }, Math.max(7000, text.split(/\s+/).length * 450)); return; }
   const buf = await getAudio(text);
   if (id !== sayId) return;
   if (buf && ctx) {
@@ -612,12 +616,18 @@ function paintPhoto(i){
   if (i !== idx || i >= slides.length) return;
   const s = slides[i], p = pics[i];
   if (p === undefined) { paintCard(s.year || "…", s.heading, "Finding a photo…"); return; }
-  if (!p) { paintCard(s.year || "★", s.heading, ""); $("credit").textContent = "No free-to-use photo truly matched this scene, so you're seeing the title card. Tap “More photos like this” to search the archives."; return; }
+  if (!p) { paintCard(s.year || "★", s.heading, ""); $("credit").textContent = "No photo truly matched this scene, so you're seeing the title card. Tap “More photos like this” to search the archives."; return; }
   const safe = esc(p.src);
   swapLayer(`<div class="blur" style="background-image:url('${safe}')"></div><img class="kb" src="${safe}" alt="${esc(p.title || s.heading)}" referrerpolicy="no-referrer">`);
   const img = $("L" + layer).querySelector("img");
-  img.onerror = () => { if (idx === i) { pics[i] = null; paintPhoto(i); } };
-  $("credit").innerHTML = `Photo: ${esc(p.title || "Untitled")} · ${esc(p.credit)} · ${esc(p.license)} · <a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.source)}</a>`;
+  img.onerror = () => {
+    // some websites block their full-size picture; then Google's preview copy is shown
+    if (p.thumb && p.src !== p.thumb) { p.src = p.thumb; if (idx === i) paintPhoto(i); return; }
+    if (idx === i) { pics[i] = null; paintPhoto(i); }
+  };
+  $("credit").innerHTML = p.web
+    ? `Photo from ${esc(p.source)}. It belongs to its owner and is shown with a link to the source.<br><a class="src" href="${esc(p.link)}" target="_blank" rel="noopener nofollow">View at source ↗</a>`
+    : `Photo: ${esc(p.title || "Untitled")} · ${esc(p.credit)} · ${esc(p.license)} · <a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.source)}</a>`;
 }
 
 /* ---------- "not quite the right picture?" ---------- */
