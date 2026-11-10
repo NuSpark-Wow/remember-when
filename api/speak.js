@@ -34,7 +34,9 @@ module.exports = async (req, res) => {
 
   const text = String((req.body || {}).text || "").trim().slice(0, 1200);
   if (!text) return res.status(400).json({ error: "empty" });
-  const ck = who + "|" + text;
+  // Normal is a touch slower for easy listening; Slower and Faster step down and up from there
+  const speed = ({ slow: 0.8, fast: 1.05 })[(req.body || {}).speed] || 0.92;
+  const ck = who + "|" + speed + "|" + text;
   if (cache.has(ck)) return res.json(cache.get(ck));
 
   try {
@@ -44,7 +46,7 @@ module.exports = async (req, res) => {
       body: JSON.stringify({
         text,
         model_id: process.env.ELEVENLABS_MODEL || "eleven_flash_v2_5",
-        voice_settings: { stability: 0.65, similarity_boost: 0.8, style: 0.15, speed: 0.92 } // a touch slower for easy listening
+        voice_settings: { stability: 0.65, similarity_boost: 0.8, style: 0.15, speed }
       })
     });
     if (!r.ok) return res.status(502).json({ error: "voice_failed" });
