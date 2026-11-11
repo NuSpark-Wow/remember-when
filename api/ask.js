@@ -150,6 +150,43 @@ async function safetyCheck(question, show) {
   return !/UNSAFE|NOT\s+SAFE/i.test(verdict);
 }
 
+// "About this picture": the story behind one scene of the slide show, for people who remember it.
+// Answers are saved on Vercel's network, so the same scene costs nothing the next time.
+const EXPLAIN_TOOL = {
+  name: "give_story", description: "Deliver the story behind one scene.",
+  input_schema: { type: "object", properties: {
+    overview: { type: "string" },
+    items: { type: "array", items: { type: "object", properties: { word: { type: "string" }, more: { type: "string" }, why: { type: "string" } } } }
+  }, required: ["items"] }
+};
+const SYSTEM_EXPLAIN = `You are a warm, knowledgeable host of a nostalgia slide show for older adults. A viewer paused the show to learn more about one scene.
+Given the show's topic, the scene's heading, narration, year and the photo's title (you cannot see the photo itself):
+- "overview": 2-3 sentences of the story behind this scene: what was happening, when, and what it felt like to live through it.
+- "items": 3 to 5 key people, places, shows, products or events in this scene. For each: "word" (the name), "more": 2-3 plain sentences with real, well-known facts (dates, who, where), and "why": one sentence on why it was a big deal back then or why people still remember it.
+Only state facts you are confident are true and widely documented. Never describe details of the photo you cannot see. Warm, respectful, no Markdown.
+If the content is not appropriate for a family nostalgia site, return items: [].`;
+async function explainScene(src, send) {
+  const clip = (v, n) => String(v || "").replace(/[<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
+  const topic = clip(src.q, 200), heading = clip(src.h, 120), text = clip(src.t, 600), year = clip(src.y, 20), photo = clip(src.p, 120);
+  if (!heading && !text) return send(400, { error: "empty" });
+  try {
+    const j = await withRetry(async () => {
+      const data = await anthropic({
+        model: CHECK_MODEL, max_tokens: 2000, thinking: { type: "disabled" }, system: SYSTEM_EXPLAIN,
+        tools: [EXPLAIN_TOOL], tool_choice: { type: "auto" },
+        messages: [{ role: "user", content: `Show topic: ${topic}\nScene heading: ${heading}\nYear: ${year}\nNarration: ${text}\nPhoto title: ${photo || "(unknown)"}` }]
+      });
+      const block = (data.content || []).find(b => b.type === "tool_use");
+      if (!block || !block.input || !Array.isArray(block.input.items)) throw new Error("bad_shape");
+      return block.input;
+    });
+    const items = j.items.map(i => ({ word: clip(i.word, 80), more: clip(i.more, 600), why: clip(i.why, 300) })).filter(i => i.word && i.more).slice(0, 5);
+    return send(200, { overview: clip(j.overview, 600), items }, true);
+  } catch (e) {
+    return send(500, { error: "oops", reason: errorCode(e) });
+  }
+}
+
 module.exports = async (req, res) => {
   const isGet = req.method === "GET";
   if (!isGet && req.method !== "POST") return res.status(405).json({ error: "GET or POST only" });
@@ -160,6 +197,7 @@ module.exports = async (req, res) => {
   if (!process.env.ANTHROPIC_API_KEY) return send(500, { error: "oops", reason: "K1" });
 
   const src = (isGet ? req.query : req.body) || {};
+  if (src.part === "explain") return explainScene(src, send);
   const question = String(src.q || "").trim().slice(0, 300);
   const more = !isGet && src.more === true;
   const prev = isGet ? "" : String(src.prev || "").slice(0, 3000);
