@@ -341,16 +341,18 @@ function unlock(){
 }
 let speedPref = ["slow", "fast"].includes(store.get("rw_speed")) ? store.get("rw_speed") : "normal";
 function setSpeed(p){
+  const changed = p !== speedPref;
   speedPref = p; audioCache.clear();
+  if (changed && typeof respeed === "function") respeed();   // the slide being read switches speed right away
   $("sSlow").classList.toggle("on", p === "slow"); $("sNormal").classList.toggle("on", p === "normal"); $("sFast").classList.toggle("on", p === "fast");
   store.set("rw_speed", p);
 }
-function voiceRate(){ return speedPref === "slow" ? 0.8 : speedPref === "fast" ? 1.02 : 0.9; }
+function voiceRate(){ return speedPref === "slow" ? 0.72 : speedPref === "fast" ? 1.12 : 0.9; }
 function setVoicePref(p){ voicePref = p; if (p === "man" || p === "woman") { lastVoice = p; store.set("rw_voice_last", p); } $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman"); $("vMute").classList.toggle("on", p === "mute"); store.set("rw_voice", p); audioCache.clear(); }
 setVoicePref(voicePref); setSpeed(speedPref);
-$("sSlow").onclick = () => { setSpeed("slow"); unlock(); sayAlone("Slower speed."); };
-$("sNormal").onclick = () => { setSpeed("normal"); unlock(); sayAlone("Normal speed."); };
-$("sFast").onclick = () => { setSpeed("fast"); unlock(); sayAlone("Faster speed."); };
+$("sSlow").onclick = () => { setSpeed("slow"); unlock(); sayAlone("Okay, I'll talk a little slower now."); };
+$("sNormal").onclick = () => { setSpeed("normal"); unlock(); sayAlone("Back to my normal speed."); };
+$("sFast").onclick = () => { setSpeed("fast"); unlock(); sayAlone("Okay, I'll talk a little faster now."); };
 $("vMan").onclick = () => { setVoicePref("man"); unlock(); sayAlone("Hello, and welcome to Remember When."); };
 $("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayAlone("Hello, and welcome to Remember When."); };
 // Mute: no voice at all. The show keeps going, giving time to read each slide.
@@ -409,6 +411,22 @@ function leveled(buf){
   g.connect(lim); lim.connect(ctx.destination);
   return g;
 }
+var curText = "", curEnd = null, srcT0 = 0, srcDur = 0, respeedId = 0;
+function startSrc(buf, offset, onEnd){
+  srcNode = ctx.createBufferSource(); srcNode.buffer = buf; srcNode.connect(leveled(buf));
+  srcNode.onended = onEnd; srcT0 = ctx.currentTime - (offset || 0); srcDur = buf.duration;
+  srcNode.start(0, offset || 0);
+}
+// Speed changed mid-slide: record the slide again at the new speed and carry on from the same spot
+async function respeed(){
+  if (!srcNode || !curText || midPause || voicePref === "mute" || !ctx) return;
+  const my = ++respeedId, id = sayId, text = curText, onEnd = curEnd;
+  const buf = await getAudio(text);
+  if (my !== respeedId || id !== sayId || !buf || !srcNode || midPause) return;
+  const frac = Math.min(0.98, Math.max(0, (ctx.currentTime - srcT0) / (srcDur || 1)));
+  try { srcNode.onended = null; srcNode.stop(); } catch(e) {}
+  try { startSrc(buf, frac * buf.duration, onEnd); } catch(e) { onEnd && onEnd(); }
+}
 // Speaks text; calls done() when finished (unless stopped first)
 async function say(text, done){
   stopSound();
@@ -417,9 +435,8 @@ async function say(text, done){
   const buf = await getAudio(text);
   if (id !== sayId) return;
   if (buf && ctx) {
-    srcNode = ctx.createBufferSource(); srcNode.buffer = buf; srcNode.connect(leveled(buf));
-    srcNode.onended = () => { srcNode = null; if (id === sayId) done && done(); };
-    srcNode.start(); return;
+    curText = text; curEnd = () => { srcNode = null; if (id === sayId) done && done(); };
+    startSrc(buf, 0, curEnd); return;
   }
   if ("speechSynthesis" in window) {
     const parts = text.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [text];
