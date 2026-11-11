@@ -195,7 +195,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <div class="brand">Remember When<small>A trip down memory lane, told in pictures</small></div>
     <div class="prefs">
       <div class="seg" role="group" aria-label="Narrator voice"><span class="lab">Voice</span><button id="vMan" class="on">Man</button><button id="vWoman">Woman</button><button id="vMute" aria-label="Mute: no voice, read the words">Mute</button></div>
-      <div class="seg" role="group" aria-label="Voice speed"><span class="lab">Speed</span><button id="sSlow">Slower</button><button id="sNormal" class="on">Normal</button><button id="sFast">Faster</button></div>
+      <div class="seg" role="group" aria-label="Voice speed"><span class="lab">Speed</span><button id="sSlow">Slower</button><button id="sNormal" class="on">Normal</button><button id="sFast" style="display:none">Faster</button></div>
       <div class="seg" role="group" aria-label="Text size"><span class="lab">Text</span><button id="tN" class="on" aria-label="Regular text">A</button><button id="tB" aria-label="Large text" style="font-size:1rem">A</button><button id="tH" aria-label="Extra large text" style="font-size:1.2rem">A</button></div>
     </div>
   </header>
@@ -339,7 +339,7 @@ function unlock(){
   try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended" && !midPause) ctx.resume(); } catch(e) {}
   try { if ("speechSynthesis" in window && !midPause) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch(e) {}
 }
-let speedPref = ["slow", "fast"].includes(store.get("rw_speed")) ? store.get("rw_speed") : "normal";
+let speedPref = store.get("rw_speed") === "slow" ? "slow" : "normal";   // Normal and Slower only
 function setSpeed(p){
   const changed = p !== speedPref;
   speedPref = p; audioCache.clear();
@@ -347,7 +347,7 @@ function setSpeed(p){
   $("sSlow").classList.toggle("on", p === "slow"); $("sNormal").classList.toggle("on", p === "normal"); $("sFast").classList.toggle("on", p === "fast");
   store.set("rw_speed", p);
 }
-function voiceRate(){ return speedPref === "slow" ? 0.72 : speedPref === "fast" ? 1.12 : 0.9; }
+function voiceRate(){ return speedPref === "slow" ? 0.8 : speedPref === "fast" ? 1.02 : 0.9; }
 function setVoicePref(p){ voicePref = p; if (p === "man" || p === "woman") { lastVoice = p; store.set("rw_voice_last", p); } $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman"); $("vMute").classList.toggle("on", p === "mute"); store.set("rw_voice", p); audioCache.clear(); }
 setVoicePref(voicePref); setSpeed(speedPref);
 $("sSlow").onclick = () => { setSpeed("slow"); unlock(); sayAlone("Okay, I'll talk a little slower now."); };
