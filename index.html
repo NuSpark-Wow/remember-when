@@ -204,6 +204,10 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
   .spacer{display:none}
 }
 #startOver{color:#a8402e;font-weight:800}
+.rategrp{display:flex;align-items:center;gap:6px;padding:4px 12px!important}
+.rategrp input{width:130px;accent-color:#c4952f;height:28px}
+.rategrp .rl{font-size:18px}
+.rategrp #rateVal{min-width:92px;font-size:13px!important;padding:6px 8px!important}
 </style>
 </head>
 <body>
@@ -213,7 +217,8 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <div class="prefs">
       <div class="seg" role="group" aria-label="Narrator voice"><span class="lab">Voice</span><button id="vMan" class="on">Man</button><button id="vWoman">Woman</button><button id="vMute" aria-label="Mute: no voice, read the words">Mute</button></div>
       <div class="seg" role="group" aria-label="Start over"><button id="startOver" title="Stop and start over with a new topic">⟲ Start over</button></div>
-      <div class="seg" role="group" aria-label="Voice speed"><span class="lab">Speed</span><button id="sSlow">Slower</button><button id="sNormal" class="on">Normal</button><button id="sFast" style="display:none">Faster</button></div>
+      <div class="seg" role="group" aria-label="Voice speed" style="display:none"><span class="lab">Speed</span><button id="sSlow">Slower</button><button id="sNormal" class="on">Normal</button><button id="sFast" style="display:none">Faster</button></div>
+      <div class="seg rategrp" role="group" aria-label="Voice speed slider"><span class="rl" aria-hidden="true">🐢</span><input type="range" id="rate" min="0.7" max="1.05" step="0.05" value="1" aria-label="Voice speed: slide left for slower, right for faster"><span class="rl" aria-hidden="true">🐇</span><button id="rateVal" title="Tap to go back to normal speed">Normal</button></div>
       <div class="seg" role="group" aria-label="Text size"><span class="lab">Text</span><button id="tN" class="on" aria-label="Regular text">A</button><button id="tB" aria-label="Large text" style="font-size:1rem">A</button><button id="tH" aria-label="Extra large text" style="font-size:1.2rem">A</button></div>
     </div>
   </header>
@@ -361,9 +366,10 @@ const audioCache = new Map(); // text -> Promise<AudioBuffer|null>
 let ctx = null, voiceOff = false, srcNode = null, voicePref = ["woman", "mute"].includes(store.get("rw_voice")) ? store.get("rw_voice") : "man";
 function unlock(){
   try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended" && !midPause) ctx.resume(); } catch(e) {}
+  try { blessVoiceEl(); } catch(e) {}
   try { if ("speechSynthesis" in window && !midPause) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch(e) {}
 }
-let speedPref = store.get("rw_speed") === "slow" ? "slow" : "normal";   // Normal and Slower only
+let speedPref = "normal";   // the slider sets the speed now
 function setSpeed(p){
   const changed = p !== speedPref;
   speedPref = p; audioCache.clear();
@@ -398,7 +404,9 @@ function getAudio(text){
       if (!r.ok) return null;
       const d = await r.json();
       const bytes = Uint8Array.from(atob(d.audio), c => c.charCodeAt(0));
-      return await ctx.decodeAudioData(bytes.buffer);
+      const url = URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }));   // for the speed-adjustable player
+      const buf = await ctx.decodeAudioData(bytes.buffer); buf._url = url;
+      return buf;
     } catch(e) { return null; }
   })();
   audioCache.set(key, p);
@@ -419,7 +427,7 @@ let sayId = 0;
 var midPause = false;   // paused partway through a slide's narration
 function stopSound(){
   sayId++;
-  if (midPause) { midPause = false; try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} }
+  if (midPause) { midPause = false; if (voiceEl) voiceEl._held = false; try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} }
   try { if (srcNode) { srcNode.onended = null; srcNode.stop(); } } catch(e) {}
   srcNode = null;
   try { speechSynthesis.cancel(); } catch(e) {}
@@ -435,9 +443,72 @@ function leveled(buf){
   g.connect(lim); lim.connect(ctx.destination);
   return g;
 }
+
+/* ---------- voice speed slider ---------- */
+// The recorded voice plays through an audio player, so the slider changes its speed instantly, any time,
+// while keeping a natural pitch. Loudness levelling still applies. If the player can't start, the old way is used.
+var voiceEl = null, voiceElSrc = null, rateNow = 1;
+try { const r0 = parseFloat(localStorage.getItem("rw_rate")); if (r0 >= 0.7 && r0 <= 1.05) rateNow = r0; } catch(e) {}
+var SILENT_CLIP = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
+function getVoiceEl(){
+  if (voiceEl) return voiceEl;
+  if (!ctx || !ctx.createMediaElementSource) return null;
+  try {
+    const el = new Audio(); el.setAttribute("playsinline", ""); el.preload = "auto";
+    el.preservesPitch = true; el.mozPreservesPitch = true; el.webkitPreservesPitch = true;
+    voiceElSrc = ctx.createMediaElementSource(el); voiceEl = el;
+  } catch(e) { voiceEl = null; }
+  return voiceEl;
+}
+function blessVoiceEl(){
+  const el = getVoiceEl(); if (!el || el._blessed) return; el._blessed = true;
+  try { el.src = SILENT_CLIP; const p = el.play(); if (p) p.catch(() => {}); } catch(e) {}
+}
+// Returns a stand-in for the old sound node (start, stop, onended), or null to play the old way
+function elPlay(a){
+  const el = getVoiceEl(); if (!el || !a || !a.url || !a.buf) return null;
+  let ended = null, backup = null;
+  const node = {
+    _el: true,
+    set onended(f){ ended = f; el.onended = f ? () => { if (ended) ended(); } : null; if (backup) backup.onended = el.onended; },
+    get onended(){ return ended; },
+    start(when, off){
+      try { voiceElSrc.disconnect(); } catch(e) {}
+      voiceElSrc.connect(typeof leveled === "function" ? leveled(a.buf) : ctx.destination);
+      el.pause();
+      const go = () => {
+        try { el.currentTime = off || 0; } catch(e) {}
+        el.playbackRate = rateNow;
+        const p = el.play();
+        if (p) p.catch(() => {   // the browser refused the player: play the old way instead
+          node._el = false;
+          try { backup = ctx.createBufferSource(); backup.buffer = a.buf; backup.connect(typeof leveled === "function" ? leveled(a.buf) : ctx.destination); backup.onended = el.onended; backup.start(0, off || 0); } catch(e) {}
+        });
+      };
+      if (el.src !== a.url) { el.src = a.url; el.addEventListener("loadedmetadata", go, { once: true }); el.load(); } else go();
+    },
+    stop(){ el.onended = null; el.pause(); if (backup) { try { backup.onended = null; backup.stop(); } catch(e) {} } }
+  };
+  return node;
+}
+function elHold(){ if (voiceEl && !voiceEl.paused) { voiceEl._held = true; voiceEl.pause(); } }
+function elUnhold(){ if (voiceEl && voiceEl._held) { voiceEl._held = false; voiceEl.playbackRate = rateNow; const p = voiceEl.play(); if (p) p.catch(() => {}); } }
+(function(){
+  const r = document.getElementById("rate"), lab = document.getElementById("rateVal"); if (!r || !lab) return;
+  const show = () => { lab.textContent = Math.abs(rateNow - 1) < 0.01 ? "Normal" : (rateNow < 1 ? "Slower " : "Faster ") + rateNow.toFixed(2).replace(/0$/, "") + "×"; };
+  r.value = rateNow; show();
+  r.addEventListener("input", () => {
+    rateNow = parseFloat(r.value) || 1; if (Math.abs(rateNow - 1) < 0.03) rateNow = 1;
+    if (voiceEl) voiceEl.playbackRate = rateNow;
+    try { localStorage.setItem("rw_rate", rateNow); } catch(e) {}
+    show();
+  });
+  lab.onclick = () => { r.value = 1; r.dispatchEvent(new Event("input")); };   // tap the label to go back to normal
+})();
 var curText = "", curEnd = null, srcT0 = 0, srcDur = 0, respeedId = 0;
 function startSrc(buf, offset, onEnd){
-  srcNode = ctx.createBufferSource(); srcNode.buffer = buf; srcNode.connect(leveled(buf));
+  srcNode = elPlay({ buf, url: buf._url });
+  if (!srcNode) { srcNode = ctx.createBufferSource(); srcNode.buffer = buf; srcNode.connect(leveled(buf)); }
   srcNode.onended = onEnd; srcT0 = ctx.currentTime - (offset || 0); srcDur = buf.duration;
   srcNode.start(0, offset || 0);
 }
@@ -648,12 +719,12 @@ function pause(){
   // a voice that is talking waits right where it is; Play picks up mid-sentence
   if (voicePref !== "mute" && (srcNode || ("speechSynthesis" in window && speechSynthesis.speaking))) {
     midPause = true;
-    try { if (ctx) ctx.suspend(); } catch(e) {}
+    try { if (ctx) ctx.suspend(); } catch(e) {} elHold();
     try { speechSynthesis.pause(); } catch(e) {}
   } else stopSound();
 }
 $("play").onclick = () => { unlock(); if (!show) { $("q").focus(); return; } if (playing) pause();
-  else if (midPause) { midPause = false; setPlaying(true); try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} }
+  else if (midPause) { midPause = false; setPlaying(true); try { if (ctx) ctx.resume(); } catch(e) {} elUnhold(); try { speechSynthesis.resume(); } catch(e) {} }
   else { setPlaying(true); narrate(idx); } };
 /* ---------- study bar under the screen ---------- */
 // Pause holds the voice and the picture; Continue picks up where it stopped; About this picture tells the story behind it.
@@ -667,7 +738,7 @@ function studyUI(){
 }
 function continueShow(){
   if (!show || playing) return;
-  if (midPause) { midPause = false; setPlaying(true); try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} }
+  if (midPause) { midPause = false; setPlaying(true); try { if (ctx) ctx.resume(); } catch(e) {} elUnhold(); try { speechSynthesis.resume(); } catch(e) {} }
   else { setPlaying(true); narrate(idx); }
 }
 $("bPause").onclick = () => { unlock(); pause(); studyUI(); };
