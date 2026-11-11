@@ -133,6 +133,22 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
 .betterPic .ask2 button{border:0;border-radius:12px;height:52px;padding:0 18px;font-weight:700;font-size:.85rem;background:var(--red);color:#fff}
 .betterPic .status{margin-top:8px;font-size:.8rem;font-weight:700;color:#e9c983;min-height:1.2em}
 
+/* Study bar right under the screen: Pause, Continue, About this picture */
+.studybar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:12px 6px 2px}
+.studybar button{min-height:60px;border-radius:14px;border:2px solid rgba(255,255,255,.3);background:#3a2f25;color:#fff;font-weight:700;font-size:1rem;line-height:1.15;padding:6px 8px}
+.studybar button:disabled{opacity:.4}
+.studybar button.on{background:var(--gold);border-color:var(--gold);color:#1c1712}
+.studybar button.on:disabled{opacity:1}
+.studybar #bCont:not(:disabled){background:var(--red);border-color:var(--red)}
+@media (max-width:560px){.studybar button{font-size:.9rem;min-height:64px}}
+.explain{margin:10px 6px 4px;padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:var(--stage-ink);line-height:1.55}
+.explain .lt{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:#cdbd9c;font-weight:700;margin:4px 0 6px}
+.explain .ov{margin:0 0 12px;font-style:italic}
+.explain .it{margin:0 0 12px}
+.explain .it b{font-family:Fraunces,Georgia,serif;font-size:1.1rem;color:#f2c96b;margin-right:6px}
+.explain .why{display:block;color:#b9dcb0;margin-top:3px}
+.explain .wait{color:#cdbd9c;font-style:italic}
+.explain .hidebtn{border:1px solid rgba(255,255,255,.35);background:none;color:#fff;border-radius:12px;padding:10px 16px;font-weight:700;font-size:.9rem;margin-top:4px}
 .ctrls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 6px 4px}
 .cbtn{border:0;border-radius:14px;padding:0 20px;min-height:58px;font-weight:700;font-size:1rem;background:#3a2f25;color:#fff}
 .cbtn:disabled{opacity:.35;cursor:default}
@@ -237,6 +253,12 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <div class="seats" aria-hidden="true"></div>
     </div>
     <div id="slideArea">
+      <div class="studybar" id="studybar">
+        <button id="bPause" disabled>⏸ Pause</button>
+        <button id="bCont" disabled>▶ Continue</button>
+        <button id="bExplain" disabled>📖 About this picture</button>
+      </div>
+      <div class="explain hide" id="explain" aria-live="polite"></div>
       <div class="caption"><h3 id="hd">Ask about any time you remember</h3><p id="tx">Pick a decade or a topic above, or ask your own question. You'll get a short slide show of real archive photos, read aloud, one picture at a time.</p><div class="credit" id="credit"></div>
         <div class="betterPic hide" id="betterPic">
           <p class="note"><b>Not quite the right picture?</b> We only use photos that are free to share, and our AI picks the closest match it can find, so sometimes it misses. Tell us what you'd like to see and we'll look for a better one, if one is available.</p>
@@ -246,7 +268,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
         </div></div>
       <div class="ctrls" id="ctrls">
         <button class="cbtn" id="prev" aria-label="Previous picture">◀ Back</button>
-        <button class="cbtn play" id="play">▶ Play</button>
+        <button class="cbtn play" id="play" style="display:none">▶ Play</button>
         <button class="cbtn" id="next" aria-label="Next picture">Next ▶</button>
         <span class="spacer"></span>
         <button class="cbtn small" id="morePh">📷 More photos like this</button>
@@ -585,6 +607,7 @@ function go(i, autoplay){
   $("morePh").classList.remove("hide"); $("betterPic").classList.remove("hide");
   clearTimeout(advanceTimer); stopSound();
   idx = Math.max(0, Math.min(i, total() - 1));
+  if (typeof closeExplain === "function") closeExplain();
   const atEnd = idx >= slides.length;
   $("slideArea").classList.toggle("hide", atEnd);
   $("endArea").classList.toggle("hide", !atEnd);
@@ -615,7 +638,7 @@ function narrate(i){
     advanceTimer = setTimeout(() => { if (playing && idx === i) go(i + 1, true); }, 1800);
   });
 }
-function setPlaying(on){ playing = on; $("play").textContent = on ? "❚❚ Pause" : "▶ Play"; $("play").setAttribute("aria-label", on ? "Pause the slide show" : "Play the slide show"); }
+function setPlaying(on){ playing = on; if (typeof studyUI === "function") setTimeout(studyUI, 0); $("play").textContent = on ? "❚❚ Pause" : "▶ Play"; $("play").setAttribute("aria-label", on ? "Pause the slide show" : "Play the slide show"); }
 function pause(){
   clearTimeout(advanceTimer);
   if (!playing) return;
@@ -630,6 +653,55 @@ function pause(){
 $("play").onclick = () => { unlock(); if (!show) { $("q").focus(); return; } if (playing) pause();
   else if (midPause) { midPause = false; setPlaying(true); try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} }
   else { setPlaying(true); narrate(idx); } };
+/* ---------- study bar under the screen ---------- */
+// Pause holds the voice and the picture; Continue picks up where it stopped; About this picture tells the story behind it.
+function studyUI(){
+  const bp = $("bPause"), bc = $("bCont"), be = $("bExplain"); if (!bp) return;
+  const inShow = !!show && idx < slides.length;
+  bp.disabled = !playing; bc.disabled = !inShow || playing;
+  bp.classList.toggle("on", inShow && !playing && midPause);
+  be.disabled = !inShow;
+  be.textContent = !$("explain").classList.contains("hide") ? "📖 Hide the story" : "📖 About this picture";
+}
+function continueShow(){
+  if (!show || playing) return;
+  if (midPause) { midPause = false; setPlaying(true); try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} }
+  else { setPlaying(true); narrate(idx); }
+}
+$("bPause").onclick = () => { unlock(); pause(); studyUI(); };
+$("bCont").onclick = () => { unlock(); continueShow(); };
+let explains = {}, explainShow = null;
+function closeExplain(){ const b = $("explain"); if (b) { b.classList.add("hide"); b.innerHTML = ""; } studyUI(); }
+$("bExplain").onclick = async () => {
+  if (!show || idx >= slides.length) return;
+  const box = $("explain");
+  if (!box.classList.contains("hide")) { closeExplain(); return; }
+  unlock(); pause();
+  if (explainShow !== show) { explains = {}; explainShow = show; }
+  const i = idx; box.classList.remove("hide"); studyUI();
+  if (explains[i]) { renderExplain(explains[i]); return; }
+  box.innerHTML = '<div class="wait">Looking up the story behind this picture… just a few seconds.</div>';
+  const s = slides[i], p = pics[i] || {};
+  const qs = `part=explain&v=1&q=${encodeURIComponent(show.title || lastQ || "")}&h=${encodeURIComponent(s.heading || "")}&t=${encodeURIComponent(String(s.text || "").slice(0, 500))}&y=${encodeURIComponent(s.year || "")}&p=${encodeURIComponent(String(p.title || "").slice(0, 120))}`;
+  let d = null;
+  for (let attempt = 0; attempt < 2 && !d; attempt++) {
+    try { const r = await fetch("/api/ask?" + qs); if (r.ok) { const j = await r.json(); if (j && Array.isArray(j.items)) d = j; } } catch(e) {}
+  }
+  if (idx !== i || box.classList.contains("hide")) return;
+  if (!d || (!d.items.length && !d.overview)) { box.innerHTML = '<div class="wait">Couldn\'t look that up right now. Tap the button again in a moment.</div>'; return; }
+  explains[i] = d; renderExplain(d);
+};
+function renderExplain(d){
+  const box = $("explain"); box.innerHTML = "";
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  box.appendChild(el("div", "lt", "The story behind this picture"));
+  if (d.overview) box.appendChild(el("p", "ov", d.overview));
+  if (d.items.length) {
+    box.appendChild(el("div", "lt", "People, places and things"));
+    d.items.forEach(i => { const p = el("p", "it"); p.appendChild(el("b", "", i.word)); p.appendChild(document.createTextNode(i.more)); if (i.why) p.appendChild(el("span", "why", "Why it was a big deal: " + i.why)); box.appendChild(p); });
+  }
+  const h = el("button", "hidebtn", "Hide the story"); h.onclick = closeExplain; box.appendChild(h);
+}
 $("prev").onclick = () => { unlock(); go(idx - 1, playing); };
 $("next").onclick = () => { unlock(); go(idx + 1, playing); };
 $("again").onclick = () => { unlock(); go(0, true); };
