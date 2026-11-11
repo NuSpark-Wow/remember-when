@@ -203,6 +203,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
   .cbtn.play{min-width:0}
   .spacer{display:none}
 }
+#startOver{color:#a8402e;font-weight:800}
 </style>
 </head>
 <body>
@@ -211,6 +212,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <div class="brand">Remember When<small>A trip down memory lane, told in pictures</small></div>
     <div class="prefs">
       <div class="seg" role="group" aria-label="Narrator voice"><span class="lab">Voice</span><button id="vMan" class="on">Man</button><button id="vWoman">Woman</button><button id="vMute" aria-label="Mute: no voice, read the words">Mute</button></div>
+      <div class="seg" role="group" aria-label="Start over"><button id="startOver" title="Stop and start over with a new topic">⟲ Start over</button></div>
       <div class="seg" role="group" aria-label="Voice speed"><span class="lab">Speed</span><button id="sSlow">Slower</button><button id="sNormal" class="on">Normal</button><button id="sFast" style="display:none">Faster</button></div>
       <div class="seg" role="group" aria-label="Text size"><span class="lab">Text</span><button id="tN" class="on" aria-label="Regular text">A</button><button id="tB" aria-label="Large text" style="font-size:1rem">A</button><button id="tH" aria-label="Extra large text" style="font-size:1.2rem">A</button></div>
     </div>
@@ -832,6 +834,15 @@ function buildLinks(s){
 /* ---------- welcome ---------- */
 paintCard("Now Showing", "Your memories, on the big screen", "Pick a decade or ask a question to begin");
 $("prev").disabled = true; $("next").disabled = true; $("morePh").classList.add("hide");
+
+// Start over: stops everything and clears the topic, so the visitor can ask something new (or pick another tool)
+(function(){ const b = document.getElementById("startOver"); if (!b) return;
+  b.onclick = () => {
+    try { speechSynthesis.cancel(); } catch(e) {}
+    try { if (typeof ctx !== "undefined" && ctx) ctx.close(); } catch(e) {}
+    location.replace(location.pathname);   // a fresh page, without any shared-link question
+  };
+})();
 </script>
 </body>
 </html>
