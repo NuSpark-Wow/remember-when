@@ -202,7 +202,7 @@ async function ownStarters(src, send){
     const j = await withRetry(async () => {
       const data = await anthropic({
         model: CHECK_MODEL, max_tokens: 600, thinking: { type: "disabled" },
-        system: `You suggest questions for "Remember When", a warm nostalgia slide-show site for older adults. Given a topic a visitor typed, write 5 short, specific questions (each under 14 words) that would make a great slide show about memories of that topic from the 1920s to the 2000s, phrased like "What was it like...", "What were...", "Who was...". Use well-known, real names, places and events. If the topic is not appropriate for a family nostalgia site (sexual, hateful, violent, or about a private person), set ok to false and questions to [].`,
+        system: `You suggest questions for "Remember When", a warm nostalgia slide-show site for older adults. Given a topic a visitor typed, write 5 short, specific questions (each under 14 words) that would make a great slide show about memories of that topic from the 1920s to the 2000s, phrased like "What was it like...", "What were...", "Who was...". Use well-known, real names, places and events. If the topic names a decade (like "TV in the 1950s"), every question must be about that decade only. If the topic is not appropriate for a family nostalgia site (sexual, hateful, violent, or about a private person), set ok to false and questions to [].`,
         tools: [STARTERS_TOOL], tool_choice: { type: "auto" },
         messages: [{ role: "user", content: `Topic: ${topic}` }]
       });
