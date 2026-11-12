@@ -212,6 +212,13 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
 @keyframes rwGlow{0%,100%{box-shadow:0 0 0 0 rgba(242,201,107,0)}50%{box-shadow:0 0 0 7px rgba(242,201,107,.5)}}
 #replayAll{font-weight:800}
 #replayAll:disabled{opacity:.4}
+.tab.own{border-style:dashed}
+.ownrow{display:flex;gap:10px;flex-wrap:wrap;grid-column:1/-1}
+.ownrow input{flex:1;min-width:200px;font:inherit;font-size:1.05rem;padding:12px 14px;border-radius:14px;border:2px solid #e3d3b8;background:#fffaf0;color:inherit}
+.ownrow input:focus{outline:none;border-color:#a8402e}
+.ownrow .go{white-space:nowrap}
+.ownlist{display:contents}
+.ownwait{grid-column:1/-1;padding:10px 4px;color:#6b5a44;font-style:italic}
 </style>
 </head>
 <body>
@@ -332,11 +339,13 @@ const DECADES = {
   "The '60s": ["What was it like watching the moon landing in 1969?", "What toys did kids play with in the 1960s?", "What was the British Invasion in music?", "What did a 1960s kitchen look like?", "What were the muscle cars of the 1960s?"],
   "The '70s": ["What were roller rinks and disco like in the 1970s?", "What was the 1970s gas crisis like?", "What did a 1970s living room look like?", "What was the CB radio craze?", "What was the 1976 Bicentennial like?"],
   "The '80s": ["What were video arcades like in the 1980s?", "What was it like to have a Walkman?", "What were the first home computers like?", "What were shopping malls like in the 1980s?", "What was it like when MTV started?"],
-  "The '90s": ["What was it like going online with dial-up internet?", "What was the Beanie Babies craze?", "What was it like renting movies at the video store?", "What were pagers and the first cell phones like?", "What was the Y2K scare?"]
+  "The '90s": ["What was it like going online with dial-up internet?", "What was the Beanie Babies craze?", "What was it like renting movies at the video store?", "What were pagers and the first cell phones like?", "What was the Y2K scare?"],
+  "The 2000s": ["What was it like getting your first iPod?", "What were flip phones and texting like?", "What was it like getting Netflix DVDs in the mail?", "What were MySpace and early Facebook like?", "What was the American Idol and reality TV craze?"]
 };
 const TOPICS = {
   "Music & Radio": ["What was it like listening to a jukebox?", "What was a transistor radio?", "What were record stores like?", "What were 45s and LPs?", "What was it like listening to radio shows before TV?"],
-  "TV & Movies": ["What were the old movie palaces like?", "What were Saturday matinees like for kids?", "What were TV dinners?", "What was it like adjusting rabbit-ear antennas?", "Why did TV stations sign off at night?"],
+  "TV": ["What were Saturday morning cartoons like?", "What were the first kids' TV shows like Howdy Doody?", "What was it like adjusting rabbit-ear antennas?", "Why did TV stations sign off at night?", "What were TV dinners?"],
+  "Movies": ["What were the old movie palaces like?", "What were Saturday matinees like for kids?", "What was it like going to a drive-in movie?", "What were the big Hollywood musicals like?", "What was it like when Jaws and Star Wars started the blockbuster era?"],
   "Entertainment": ["What were vaudeville shows like?", "What was it like when the circus came to town?", "What were amusement parks like years ago?", "What was The Ed Sullivan Show?", "What were game shows like on early TV?"],
   "Celebrities": ["What was it like when Elvis Presley first became famous?", "Who was Lucille Ball?", "What was Frank Sinatra like in his heyday?", "What was Johnny Carson's Tonight Show like?", "What was it like when Marilyn Monroe was a star?"],
   "Sports": ["What was baseball like in Babe Ruth's day?", "What was it like watching Muhammad Ali fight?", "What was the 1980 Miracle on Ice?", "What was Wilt Chamberlain's 100-point game?", "What was it like going to a ballgame in the 1950s?"],
@@ -348,15 +357,50 @@ const TOPICS = {
   "School Days": ["What was a one-room schoolhouse like?", "What were duck and cover drills?", "What were metal lunch boxes like?", "What was school picture day like years ago?", "What were slide rules?"],
   "Toys & Games": ["When did the hula hoop craze happen?", "What was the Slinky?", "What were Lionel toy trains like?", "What board games did families play years ago?", "What were marbles and jacks?"],
   "Food & Diners": ["What was an automat?", "What were Jell-O salads?", "What did people eat at a 1950s diner?", "What were the first fast food restaurants like?", "What was Sunday dinner like years ago?"],
-  "Big Moments": ["What was V-J Day like in 1945?", "What was it like when the Beatles first came to America?", "What was Woodstock like?", "What was the first Earth Day like?", "What was the 1964 World's Fair like?"]
+  "Technology": ["What were the first home computers like?", "What was it like using a typewriter and carbon paper at the office?", "What was the first iPod like?", "What was Radio Shack like?", "What was it like when the first iPhone and iPad came out?"],
+  "Special Events": ["What was Live Aid like in 1985?", "What was the 1964 World's Fair like?", "What was the 1976 Bicentennial like?", "What was the 1984 Los Angeles Olympics like?", "What was Hands Across America in 1986?"],
+  "Big Moments": ["What was V-J Day like in 1945?", "What was it like when the Beatles first came to America?", "What was Woodstock like?", "What was the first Earth Day like?", "What was it like when the Berlin Wall fell?"]
 };
 let activeTab = "The '50s";
 function renderTabs(){
   const mk = (box, obj) => { box.innerHTML = ""; Object.keys(obj).forEach(k => { const b = document.createElement("button"); b.className = "tab" + (k === activeTab ? " on" : ""); b.textContent = k; b.onclick = () => { activeTab = k; renderTabs(); }; box.appendChild(b); }); };
   mk($("decades"), DECADES); mk($("topics"), TOPICS);
-  const list = DECADES[activeTab] || TOPICS[activeTab] || [];
+  // "Your own topic": type any topic and get 5 questions about it
+  const own = document.createElement("button"); own.className = "tab own" + (activeTab === OWN ? " on" : ""); own.textContent = "✏️ Your own topic";
+  own.onclick = () => { activeTab = OWN; renderTabs(); setTimeout(() => { const i = $("ownTopic"); if (i) i.focus({ preventScroll: true }); }, 50); };
+  $("topics").appendChild(own);
   $("starters").innerHTML = "";
-  list.forEach(q => { const b = document.createElement("button"); b.className = "starter"; b.textContent = q; b.onclick = () => { unlock(); $("q").value = q; ask(q); }; $("starters").appendChild(b); });
+  if (activeTab === OWN) {
+    const row = document.createElement("div"); row.className = "ownrow";
+    row.innerHTML = '<input id="ownTopic" type="text" maxlength="80" aria-label="Type any topic" enterkeyhint="go"><button id="ownGo" class="go">Show me questions</button>';
+    $("starters").appendChild(row);
+    const list = document.createElement("div"); list.id = "ownList"; list.className = "ownlist"; $("starters").appendChild(list);
+    const goOwn = () => { const v = $("ownTopic").value.trim(); if (v.length < 2) { $("ownTopic").focus(); return; } unlock(); ownStarters(v); };
+    $("ownGo").onclick = goOwn;
+    $("ownTopic").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); goOwn(); } };
+    if (ownLast.topic) { $("ownTopic").value = ownLast.topic; paintOwn(ownLast.qs); }
+    return;
+  }
+  const list = DECADES[activeTab] || TOPICS[activeTab] || [];
+  list.forEach(q => $("starters").appendChild(starterBtn(q)));
+}
+const OWN = "__own__";
+let ownLast = { topic: "", qs: [] };
+function starterBtn(q){ const b = document.createElement("button"); b.className = "starter"; b.textContent = q; b.onclick = () => { unlock(); $("q").value = q; ask(q); }; return b; }
+function paintOwn(qs){
+  const box = $("ownList"); if (!box) return; box.innerHTML = "";
+  qs.forEach(q => box.appendChild(starterBtn(q)));
+}
+async function ownStarters(topic){
+  const box = $("ownList"); box.innerHTML = '<div class="ownwait">Thinking of good questions about ' + topic.replace(/[<>&]/g, "") + '…</div>';
+  try {
+    const r = await fetch("/api/ask?part=starters&topic=" + encodeURIComponent(topic));
+    const d = await r.json();
+    if (!r.ok || !Array.isArray(d.questions) || !d.questions.length) throw new Error(d.message || "");
+    ownLast = { topic, qs: d.questions }; paintOwn(d.questions);
+  } catch (e) {
+    box.innerHTML = '<div class="ownwait">' + (e.message || "Hmm, I couldn't think of questions for that one. Try another topic, or just type your question in the box at the top.") + '</div>';
+  }
 }
 renderTabs();
 
