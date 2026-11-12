@@ -187,6 +187,37 @@ async function explainScene(src, send) {
   }
 }
 
+// "Your own topic": 5 starter questions about any topic a visitor types. Answers are saved on Vercel's network.
+const STARTERS_TOOL = {
+  name: "give_questions", description: "Five starter questions for the nostalgia slide show.",
+  input_schema: { type: "object", properties: {
+    ok: { type: "boolean", description: "false if the topic isn't appropriate for a family nostalgia site" },
+    questions: { type: "array", items: { type: "string" } }
+  }, required: ["ok", "questions"] }
+};
+async function ownStarters(src, send){
+  const topic = String(src.topic || "").replace(/[<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+  if (topic.length < 2) return send(400, { error: "empty" });
+  try {
+    const j = await withRetry(async () => {
+      const data = await anthropic({
+        model: CHECK_MODEL, max_tokens: 600, thinking: { type: "disabled" },
+        system: `You suggest questions for "Remember When", a warm nostalgia slide-show site for older adults. Given a topic a visitor typed, write 5 short, specific questions (each under 14 words) that would make a great slide show about memories of that topic from the 1920s to the 2000s, phrased like "What was it like...", "What were...", "Who was...". Use well-known, real names, places and events. If the topic is not appropriate for a family nostalgia site (sexual, hateful, violent, or about a private person), set ok to false and questions to [].`,
+        tools: [STARTERS_TOOL], tool_choice: { type: "auto" },
+        messages: [{ role: "user", content: `Topic: ${topic}` }]
+      });
+      const block = (data.content || []).find(b => b.type === "tool_use");
+      if (!block || !block.input || typeof block.input.ok !== "boolean") throw new Error("bad_shape");
+      return block.input;
+    });
+    if (!j.ok) return send(200, { questions: [], message: "Let's try a different topic. How about drive-ins, old radio shows, or your hometown?" }, true);
+    const questions = (j.questions || []).map(q => String(q || "").replace(/[<>]/g, " ").trim().slice(0, 140)).filter(Boolean).slice(0, 5);
+    return send(200, { questions }, true);
+  } catch (e) {
+    return send(500, { error: "oops", reason: errorCode(e) });
+  }
+}
+
 module.exports = async (req, res) => {
   if (!allowedRequest(req)) return blockRequest(res);
   const isGet = req.method === "GET";
@@ -199,6 +230,7 @@ module.exports = async (req, res) => {
 
   const src = (isGet ? req.query : req.body) || {};
   if (src.part === "explain") return explainScene(src, send);
+  if (src.part === "starters") return ownStarters(src, send);
   const question = String(src.q || "").trim().slice(0, 300);
   const more = !isGet && src.more === true;
   const prev = isGet ? "" : String(src.prev || "").slice(0, 3000);
