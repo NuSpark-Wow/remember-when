@@ -213,6 +213,10 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
 #replayAll{font-weight:800}
 #replayAll:disabled{opacity:.4}
 .tab.own{border-style:dashed}
+.howpick{margin:2px 0 10px;color:#6b5a44;font-size:1.02rem}
+.starter.fill{border-style:dashed}
+.starter.tip{border-style:dashed;background:transparent;color:#6b5a44;font-weight:700}
+.starter.tip::before,.starter.fill::before{display:none}
 .ownrow{display:flex;gap:10px;flex-wrap:wrap;grid-column:1/-1}
 .ownrow input{flex:1;min-width:200px;font:inherit;font-size:1.05rem;padding:12px 14px;border-radius:14px;border:2px solid #e3d3b8;background:#fffaf0;color:inherit}
 .ownrow input:focus{outline:none;border-color:#a8402e}
@@ -251,9 +255,10 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
   </section>
 
   <section class="pick" aria-label="Ideas to explore">
+    <p class="howpick">Pick a <b>decade</b>, a <b>topic</b>, or <b>both</b> (like TV in the '50s). Tap again to unpick.</p>
     <h2>Pick a decade</h2>
     <div class="tabs" id="decades"></div>
-    <h2>Or pick a topic</h2>
+    <h2>Pick a topic</h2>
     <div class="tabs" id="topics"></div>
     <div class="starters" id="starters"></div>
   </section>
@@ -344,8 +349,8 @@ const DECADES = {
 };
 const TOPICS = {
   "Music & Radio": ["What was it like listening to a jukebox?", "What was a transistor radio?", "What were record stores like?", "What were 45s and LPs?", "What was it like listening to radio shows before TV?"],
-  "TV": ["What were Saturday morning cartoons like?", "What were the first kids' TV shows like Howdy Doody?", "What was it like adjusting rabbit-ear antennas?", "Why did TV stations sign off at night?", "What were TV dinners?"],
-  "Movies": ["What were the old movie palaces like?", "What were Saturday matinees like for kids?", "What was it like going to a drive-in movie?", "What were the big Hollywood musicals like?", "What was it like when Jaws and Star Wars started the blockbuster era?"],
+  "TV": ["What were Saturday morning cartoons like?", "What were the first kids' TV shows like Howdy Doody?", "What was it like adjusting rabbit-ear antennas?", "Why did TV stations sign off at night?", { fill: "Tell me about the TV show ", label: "✏️ Tell me about a TV show…" }],
+  "Movies": [{ fill: "Tell me about the movie ", label: "✏️ Tell me about a movie…" }, "What were Saturday matinees like for kids?", "What was it like going to a drive-in movie?", "What were the big Hollywood musicals like?", "What was it like when Jaws and Star Wars started the blockbuster era?"],
   "Entertainment": ["What were vaudeville shows like?", "What was it like when the circus came to town?", "What were amusement parks like years ago?", "What was The Ed Sullivan Show?", "What were game shows like on early TV?"],
   "Celebrities": ["What was it like when Elvis Presley first became famous?", "Who was Lucille Ball?", "What was Frank Sinatra like in his heyday?", "What was Johnny Carson's Tonight Show like?", "What was it like when Marilyn Monroe was a star?"],
   "Sports": ["What was baseball like in Babe Ruth's day?", "What was it like watching Muhammad Ali fight?", "What was the 1980 Miracle on Ice?", "What was Wilt Chamberlain's 100-point game?", "What was it like going to a ballgame in the 1950s?"],
@@ -361,16 +366,22 @@ const TOPICS = {
   "Special Events": ["What was Live Aid like in 1985?", "What was the 1964 World's Fair like?", "What was the 1976 Bicentennial like?", "What was the 1984 Los Angeles Olympics like?", "What was Hands Across America in 1986?"],
   "Big Moments": ["What was V-J Day like in 1945?", "What was it like when the Beatles first came to America?", "What was Woodstock like?", "What was the first Earth Day like?", "What was it like when the Berlin Wall fell?"]
 };
-let activeTab = "The '50s";
+// A decade, a topic, or both. Both together gets questions made for that pair (like TV in the 1950s).
+let pickDecade = "The '50s", pickTopic = "", ownMode = false;
+const decadeWords = d => d === "The 2000s" ? "the 2000s" : d.replace(/^The '(\d0)s$/, (m, n) => "the 19" + n + "s");
 function renderTabs(){
-  const mk = (box, obj) => { box.innerHTML = ""; Object.keys(obj).forEach(k => { const b = document.createElement("button"); b.className = "tab" + (k === activeTab ? " on" : ""); b.textContent = k; b.onclick = () => { activeTab = k; renderTabs(); }; box.appendChild(b); }); };
-  mk($("decades"), DECADES); mk($("topics"), TOPICS);
-  // "Your own topic": type any topic and get 5 questions about it
-  const own = document.createElement("button"); own.className = "tab own" + (activeTab === OWN ? " on" : ""); own.textContent = "✏️ Your own topic";
-  own.onclick = () => { activeTab = OWN; renderTabs(); setTimeout(() => { const i = $("ownTopic"); if (i) i.focus({ preventScroll: true }); }, 50); };
+  const mk = (box, obj, isDecade) => { box.innerHTML = ""; Object.keys(obj).forEach(k => {
+    const b = document.createElement("button"); const on = !ownMode && (isDecade ? pickDecade === k : pickTopic === k);
+    b.className = "tab" + (on ? " on" : ""); b.textContent = k; b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.onclick = () => { ownMode = false; if (isDecade) pickDecade = pickDecade === k ? "" : k; else pickTopic = pickTopic === k ? "" : k; renderTabs(); };
+    box.appendChild(b); }); };
+  mk($("decades"), DECADES, true); mk($("topics"), TOPICS, false);
+  // "Question ideas for any topic": type any topic and get 5 questions about it
+  const own = document.createElement("button"); own.className = "tab own" + (ownMode ? " on" : ""); own.textContent = "💡 Question ideas for any topic";
+  own.onclick = () => { ownMode = !ownMode; renderTabs(); if (ownMode) setTimeout(() => { const i = $("ownTopic"); if (i) i.focus({ preventScroll: true }); }, 50); };
   $("topics").appendChild(own);
   $("starters").innerHTML = "";
-  if (activeTab === OWN) {
+  if (ownMode) {
     const row = document.createElement("div"); row.className = "ownrow";
     row.innerHTML = '<input id="ownTopic" type="text" maxlength="80" aria-label="Type any topic" enterkeyhint="go"><button id="ownGo" class="go">Show me questions</button>';
     $("starters").appendChild(row);
@@ -381,12 +392,58 @@ function renderTabs(){
     if (ownLast.topic) { $("ownTopic").value = ownLast.topic; paintOwn(ownLast.qs); }
     return;
   }
-  const list = DECADES[activeTab] || TOPICS[activeTab] || [];
+  if (pickDecade && pickTopic) { comboStarters(pickTopic, pickDecade); return; }
+  const list = DECADES[pickDecade] || TOPICS[pickTopic] || [];
+  if (!list.length) { const n = document.createElement("div"); n.className = "ownwait"; n.textContent = "Pick a decade or a topic to see some ideas."; $("starters").appendChild(n); }
   list.forEach(q => $("starters").appendChild(starterBtn(q)));
+  addTip();
+}
+function addTip(){
+  // last box: a reminder that the big box at the top takes any question
+  const tip = document.createElement("button"); tip.className = "starter tip"; tip.textContent = "⬆️ Or ask your own question at the top";
+  tip.onclick = () => focusAsk("", "Type any question, then tap Show me.");
+  $("starters").appendChild(tip);
+}
+// Both picked: 5 questions made for that pair, plus the TV/movie fill-in when it fits
+const comboCache = new Map();
+async function comboStarters(topic, decade){
+  const key = topic + "|" + decade, label = topic + " in " + decadeWords(decade);
+  const paint = qs => {
+    if (pickTopic !== topic || pickDecade !== decade || ownMode) return;
+    $("starters").innerHTML = "";
+    const fill = (TOPICS[topic] || []).find(x => x && x.fill);
+    qs.slice(0, fill ? 4 : 5).forEach(q => $("starters").appendChild(starterBtn(q)));   // keeps an even 6 boxes
+    if (fill) $("starters").appendChild(starterBtn(fill));
+    addTip();
+  };
+  if (comboCache.has(key)) return paint(comboCache.get(key));
+  $("starters").innerHTML = '<div class="ownwait">Finding questions about ' + label.replace(/[<>&]/g, "") + '…</div>';
+  try {
+    const r = await fetch("/api/ask?part=starters&topic=" + encodeURIComponent(label));
+    const d = await r.json();
+    if (!r.ok || !Array.isArray(d.questions) || !d.questions.length) throw new Error("none");
+    comboCache.set(key, d.questions); paint(d.questions);
+  } catch (e) {
+    // fall back to the topic's own questions so there is always something to tap
+    paint((TOPICS[topic] || []).filter(x => typeof x === "string"));
+  }
+}
+// Puts the cursor in the big question box (optionally with words already typed) and brings it into view
+function focusAsk(text, hint){
+  const q = $("q");
+  q.value = text || "";
+  const box = document.querySelector(".ask");
+  if (box) toTop(box.getBoundingClientRect().top + window.pageYOffset);
+  setTimeout(() => { try { q.focus({ preventScroll: true }); q.setSelectionRange(q.value.length, q.value.length); } catch(e) {} }, 350);
+  if (hint) $("hint").textContent = hint;
 }
 const OWN = "__own__";
 let ownLast = { topic: "", qs: [] };
-function starterBtn(q){ const b = document.createElement("button"); b.className = "starter"; b.textContent = q; b.onclick = () => { unlock(); $("q").value = q; ask(q); }; return b; }
+function starterBtn(q){
+  const b = document.createElement("button"); b.className = "starter";
+  if (q && q.fill) { b.classList.add("fill"); b.textContent = q.label; b.onclick = () => focusAsk(q.fill, "Type the name, then tap Show me."); return b; }
+  b.textContent = q; b.onclick = () => { unlock(); $("q").value = q; ask(q); }; return b;
+}
 function paintOwn(qs){
   const box = $("ownList"); if (!box) return; box.innerHTML = "";
   qs.forEach(q => box.appendChild(starterBtn(q)));
