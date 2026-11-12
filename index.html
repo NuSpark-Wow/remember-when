@@ -600,11 +600,21 @@ function clearPhoto(){ photo = ""; $("thumb").classList.add("hide"); $("clearPho
 let cands = [], show = null, slides = [], pics = [], idx = 0, playing = false, busy = false, advanceTimer = 0, layer = 0, lastQ = "", used = new Set();
 const LOAD_MSGS = ["Coming right up…", "Threading the projector…", "Looking through the archives…", "Finding the perfect pictures…", "Dimming the lights…"];
 
+// Scrolling: inside a website frame, the page around the tool does the scrolling.
+function toTop(y){
+  if (window.parent !== window) { try { window.parent.postMessage({ type: "pp-scroll-top", y: y || 0 }, "*"); } catch(e) {} }
+  else window.scrollTo({ top: y || 0, behavior: "smooth" });
+}
+function toShow(){
+  const el = $("show");
+  if (window.parent !== window) toTop(el.getBoundingClientRect().top + window.pageYOffset);
+  else el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 async function ask(q, opts = {}){
   if (busy) return;
   busy = true; pause(); stopSound();
   lastQ = q;
-  $("show").scrollIntoView({ behavior: "smooth", block: "start" });
+  toShow();
   $("err").classList.add("hide");
   $("theater").classList.remove("open");
   $("loading").classList.add("on");
@@ -820,7 +830,7 @@ function renderExplain(d){
 $("prev").onclick = () => { unlock(); go(idx - 1, playing); };
 $("next").onclick = () => { unlock(); go(idx + 1, playing); };
 $("again").onclick = () => { unlock(); go(0, true); };
-$("newQ").onclick = () => { stopSound(); window.scrollTo({ top: 0, behavior: "smooth" }); setTimeout(() => $("mic").click(), 400); };
+$("newQ").onclick = () => { stopSound(); toTop(0); setTimeout(() => $("mic").click(), 400); };
 $("tellMore").onclick = () => {
   unlock();
   const prev = slides.map(s => s.heading + ": " + s.text).join("\n");
@@ -955,6 +965,40 @@ $("prev").disabled = true; $("next").disabled = true; $("morePh").classList.add(
     try { if (typeof ctx !== "undefined" && ctx) ctx.close(); } catch(e) {}
     location.replace(location.pathname);   // a fresh page, without any shared-link question
   };
+})();
+</script>
+<script>
+/* ---------- auto-size: tell the host page how tall this tool is ---------- */
+(function(){
+  let last = 0;
+  function sendH(){
+    const w = document.querySelector(".wrap"); if (!w) return;
+    const h = Math.ceil(w.getBoundingClientRect().bottom + window.scrollY + 12);
+    if (Math.abs(h - last) < 4) return;
+    last = h;
+    try { if (window.parent !== window) window.parent.postMessage({ type: "pp-frame-height", h: h }, "*"); } catch(e) {}
+  }
+  try { new ResizeObserver(sendH).observe(document.body); } catch(e) {}
+  window.addEventListener("load", sendH);
+  setInterval(sendH, 1500);
+  sendH();
+})();
+</script>
+<script>
+/* ---------- keep the visitor on the tool when it gets shorter (only when embedded in a website page) ----------
+   When a screen change makes the tool shorter, the website page stays where it was, which can leave the
+   visitor looking at the footer. If the tool has scrolled out of sight after it shrinks, bring it back. */
+(function(){
+  if (window.parent === window || !window.IntersectionObserver || !window.ResizeObserver) return;
+  var root = document.querySelector(".wrap"); if (!root) return;
+  var seen = true, lastH = root.offsetHeight, waiting = 0;
+  new IntersectionObserver(function(es){ seen = es[es.length - 1].isIntersecting; }, { threshold: [0] }).observe(root);
+  new ResizeObserver(function(){
+    var h = root.offsetHeight, shrank = h < lastH - 120; lastH = h;
+    if (!shrank) return;
+    clearTimeout(waiting);
+    waiting = setTimeout(function(){ if (!seen) { try { window.parent.postMessage({ type: "pp-scroll-top", y: 0 }, "*"); } catch(e){} } }, 450);
+  }).observe(root);
 })();
 </script>
 </body>
