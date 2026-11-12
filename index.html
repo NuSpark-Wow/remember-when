@@ -210,6 +210,8 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
 .rategrp #rateVal{min-width:92px;font-size:13px!important;padding:6px 8px!important}
 .studybar #bCont.ready:not(:disabled){animation:rwGlow 1.6s ease-in-out infinite}
 @keyframes rwGlow{0%,100%{box-shadow:0 0 0 0 rgba(242,201,107,0)}50%{box-shadow:0 0 0 7px rgba(242,201,107,.5)}}
+#replayAll{font-weight:800}
+#replayAll:disabled{opacity:.4}
 </style>
 </head>
 <body>
@@ -218,7 +220,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <div class="brand">Remember When<small>A trip down memory lane, told in pictures</small></div>
     <div class="prefs">
       <div class="seg" role="group" aria-label="Narrator voice"><span class="lab">Voice</span><button id="vMan" class="on">Man</button><button id="vWoman">Woman</button><button id="vMute" aria-label="Mute: no voice, read the words">Mute</button></div>
-      <div class="seg" role="group" aria-label="Start over"><button id="startOver" title="Stop and start over with a new topic">⟲ Start over</button></div>
+      <div class="seg" role="group" aria-label="Start over"><button id="replayAll" title="Play this show again from the first scene" disabled>⏮ Replay show</button><button id="startOver" title="Stop and clear everything to ask about a new topic">✕ New topic</button></div>
       <div class="seg" role="group" aria-label="Voice speed" style="display:none"><span class="lab">Speed</span><button id="sSlow">Slower</button><button id="sNormal" class="on">Normal</button><button id="sFast" style="display:none">Faster</button></div>
       <div class="seg rategrp" role="group" aria-label="Voice speed slider"><span class="rl" aria-hidden="true">🐢</span><input type="range" id="rate" min="0.7" max="1.05" step="0.05" value="1" aria-label="Voice speed: slide left for slower, right for faster"><span class="rl" aria-hidden="true">🐇</span><button id="rateVal" title="Tap to go back to normal speed">Normal</button></div>
       <div class="seg" role="group" aria-label="Text size"><span class="lab">Text</span><button id="tN" class="on" aria-label="Regular text">A</button><button id="tB" aria-label="Large text" style="font-size:1rem">A</button><button id="tH" aria-label="Extra large text" style="font-size:1.2rem">A</button></div>
@@ -751,11 +753,15 @@ function pause(){
 $("play").onclick = () => { unlock(); if (!show) { $("q").focus(); return; } if (playing) pause();
   else if (midPause) { midPause = false; setPlaying(true); try { if (ctx) ctx.resume(); } catch(e) {} elUnhold(); try { speechSynthesis.resume(); } catch(e) {} }
   else { setPlaying(true); narrate(idx); } };
+
+/* ---------- ⏮ Replay show: the same show again from scene 1 ---------- */
+$("replayAll").onclick = () => { if (!show) return; unlock(); rwGate = false; rwFirstDone = true; go(0, true); };
 /* ---------- study bar under the screen ---------- */
 // Pause holds the voice and the picture; Continue picks up where it stopped; About this picture tells the story behind it.
 function studyUI(){
   const bp = $("bPause"), bc = $("bCont"), be = $("bExplain"); if (!bp) return;
   const inShow = !!show && idx < slides.length;
+  if ($("replayAll")) $("replayAll").disabled = !show;
   bp.disabled = !playing; bc.disabled = !inShow || playing;
   bp.classList.toggle("on", inShow && !playing && midPause);
   be.disabled = !inShow;
