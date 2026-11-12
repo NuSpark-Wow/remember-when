@@ -208,6 +208,8 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
 .rategrp input{width:130px;accent-color:#c4952f;height:28px}
 .rategrp .rl{font-size:18px}
 .rategrp #rateVal{min-width:92px;font-size:13px!important;padding:6px 8px!important}
+.studybar #bCont.ready:not(:disabled){animation:rwGlow 1.6s ease-in-out infinite}
+@keyframes rwGlow{0%,100%{box-shadow:0 0 0 0 rgba(242,201,107,0)}50%{box-shadow:0 0 0 7px rgba(242,201,107,.5)}}
 </style>
 </head>
 <body>
@@ -645,8 +647,14 @@ function startShow(d){
     if (i === slides.length && !isShow) break;
     const b = document.createElement("button"); b.setAttribute("aria-label", i < slides.length ? "Picture " + (i + 1) : "The end"); b.onclick = () => go(i, playing); $("dots").appendChild(b);
   }
+  picLoaded = {};
   slides.forEach((s, i) => findPic(i));
-  go(0, true);
+  if (rwFirstDone) go(0, true);
+  else {
+    rwGate = true; rwReady = false; go(0, false); studyUI();
+    const run = show;
+    waitPic(0, 8000).then(() => { if (run !== show || !rwGate) return; rwReady = true; rwDing(); studyUI(); });
+  }
   // warm up the first two narrations
   getAudio(lineFor(0)); if (slides[1]) getAudio(lineFor(1));
 }
@@ -664,7 +672,8 @@ async function findPic(i){
   if (run !== show) return;
   cands[i] = list;
   const pick = list.find(p => !used.has(p.src)) || null;
-  if (pick) { used.add(pick.src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = pick.src; }
+  if (pick) { used.add(pick.src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.onload = im.onerror = () => { picLoaded[i] = true; }; im.src = pick.src; }
+  else picLoaded[i] = true;
   pics[i] = pick;
   if (i === idx) paintPhoto(i);
 }
@@ -704,8 +713,24 @@ function go(i, autoplay){
   $("ask2").classList.add("hide"); $("picStatus").textContent = ""; $("wantBox").value = "";
   if (autoplay) { setPlaying(true); narrate(idx); } else setPlaying(false);
 }
+var picLoaded = {}, rwFirstDone = false, rwGate = false, rwReady = false;
+// a slide waits for its photo (up to 8 seconds) before the narration starts; if a photo fails, the slide still plays
+function waitPic(i, ms){
+  const t0 = Date.now(), run = show;
+  return new Promise(ok => {
+    const check = () => {
+      if (run !== show) return ok(false);
+      if ((pics[i] !== undefined && (pics[i] === null || picLoaded[i])) || Date.now() - t0 > ms) return ok(true);
+      setTimeout(check, 200);
+    };
+    check();
+  });
+}
 function narrate(i){
   if (slides[i + 1]) getAudio(lineFor(i + 1));
+  waitPic(i, 8000).then(go2 => { if (go2 && playing && idx === i) narrateNow(i); });
+}
+function narrateNow(i){
   say(lineFor(i), () => {
     if (!playing || idx !== i) return;
     advanceTimer = setTimeout(() => { if (playing && idx === i) go(i + 1, true); }, 1800);
@@ -735,13 +760,24 @@ function studyUI(){
   bp.classList.toggle("on", inShow && !playing && midPause);
   be.disabled = !inShow;
   be.textContent = !$("explain").classList.contains("hide") ? "📖 Hide the story" : "📖 About this picture";
+  bc.textContent = "▶ Continue"; bc.classList.remove("ready");
+  if (rwGate && inShow) { bc.disabled = !rwReady; bc.textContent = rwReady ? "▶ Start the show" : "⏳ Finding the first photo…"; bc.classList.toggle("ready", rwReady); bp.disabled = true; bp.classList.remove("on"); }
+}
+function rwDing(){
+  if (voicePref === "mute") return;
+  try { unlock(); const o = ctx.createOscillator(), gn = ctx.createGain(), t0 = ctx.currentTime;
+    o.frequency.setValueAtTime(880, t0); o.frequency.setValueAtTime(1320, t0 + 0.12);
+    gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(0.22, t0 + 0.02); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45);
+    o.connect(gn).connect(ctx.destination); o.start(t0); o.stop(t0 + 0.5); } catch(e) {}
 }
 function continueShow(){
+  if (rwGate) { if (!rwReady) return; rwGate = false; rwFirstDone = true; }
   if (!show || playing) return;
   if (midPause) { midPause = false; setPlaying(true); try { if (ctx) ctx.resume(); } catch(e) {} elUnhold(); try { speechSynthesis.resume(); } catch(e) {} }
   else { setPlaying(true); narrate(idx); }
 }
 $("bPause").onclick = () => { unlock(); pause(); studyUI(); };
+document.addEventListener("click", e => { if (rwGate && e.target && (e.target.id === "prev" || e.target.id === "next" || (e.target.closest && e.target.closest("#dots")))) { rwGate = false; rwFirstDone = true; studyUI(); } }, true);
 $("bCont").onclick = () => { unlock(); continueShow(); };
 let explains = {}, explainShow = null;
 function closeExplain(){ const b = $("explain"); if (b) { b.classList.add("hide"); b.innerHTML = ""; } studyUI(); }
