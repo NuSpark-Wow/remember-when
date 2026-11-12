@@ -291,6 +291,7 @@ async function findFor(q, scene, log, debug) {
 }
 
 module.exports = async (req, res) => {
+  if (!allowedRequest(req)) return blockRequest(res);
   let q = String(req.query.q || "").replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
   let scene = String(req.query.scene || "").replace(/\s+/g, " ").trim().slice(0, 500);
   const want = String(req.query.want || "").replace(/\s+/g, " ").trim().slice(0, 200);
@@ -319,3 +320,28 @@ module.exports = async (req, res) => {
   res.setHeader("Cache-Control", debug ? "no-store" : (images.length || checked) ? "public, s-maxage=604800" : "s-maxage=3600");
   return res.json(debug ? { images, checked, terms: t, log } : { images, checked });
 };
+
+// ---------- website lock ----------
+// Only answer this tool's own pages and Paul's websites, so nobody else can run the tool on his credits.
+// Add more sites in Vercel with an ALLOWED_SITES setting (comma separated); set LOCK_OFF to 1 to switch the lock off.
+function allowedRequest(req) {
+  if (String(process.env.LOCK_OFF || "") === "1") return true;
+  const sites = ["nusparkpublishing.com", "nusparkmarketing.com", "nusparklearnwow.com"]
+    .concat(String(process.env.ALLOWED_SITES || "").split(",").map(s => s.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "")).filter(Boolean));
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").toLowerCase().split(":")[0];
+  const ok = u => {
+    try {
+      const h = new URL(u).hostname.toLowerCase();
+      return h === host || h === "localhost" || h === "127.0.0.1" || sites.some(d => h === d || h.endsWith("." + d));
+    } catch (e) { return false; }
+  };
+  const origin = req.headers.origin, ref = req.headers.referer || req.headers.referrer;
+  if (origin && origin !== "null") return ok(origin);
+  if (ref) return ok(ref);
+  return req.method === "GET"; // quick status checks; browsers always say where a POST comes from
+}
+function blockRequest(res) {
+  res.statusCode = 403;
+  res.setHeader("content-type", "application/json");
+  res.end(JSON.stringify({ error: "not_allowed", message: "This tool only works on NuSpark websites." }));
+}
