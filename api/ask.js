@@ -33,6 +33,7 @@ DECIDE THE TYPE FIRST:
 - "show": a nostalgia or history question. Make the slide show.
 - "redirect": chit-chat or not a question about the past. One friendly slide steering to a related memory topic.
 - "decline": requests for harmful instructions, sexual content, or harassment. One brief, polite slide.
+- "clarify": the request is too broad or unclear to make one good show: a single word or a broad subject with no era and no angle (for example "fashion", "cars", "music", "men's fashion trends"), or you truly cannot tell what they mean. Ask ONE short, friendly follow-up in "question" (under 20 words; it may be read aloud) and give 2 to 4 short tap answers in "choices" (each under 6 words). When it fits, make one choice the broad option, like "A trip through all the decades". Do NOT clarify when the question already names a decade or year, a person, a show, a movie, a place, an event, or a specific thing: make the show. When in doubt, make the show.
 
 THE SLIDE SHOW ("slides"): 6 to 7 slides that tell a story in order, like a photo album. Each slide has:
 - "heading": a short, warm headline (3 to 7 words).
@@ -59,14 +60,17 @@ CONTESTED TOPICS (politics, religion, wars): describe what happened and how peop
 TONE: warm, respectful, never condescending, never "back in my day" jokes about age. Hard history (wars, the Depression, assassinations) is handled with care and dignity.
 
 For redirect and decline: fill only type, title, and slides (one slide).
+For clarify: fill only type, title ("One quick question"), question, and choices. Leave slides empty.
 
 Always respond by calling the give_show tool.`;
 
 const SHOW_TOOL = {
   name: "give_show", description: "Deliver the narrated photo slide show.",
   input_schema: { type: "object", properties: {
-    type: { type: "string", enum: ["show", "redirect", "decline"] },
+    type: { type: "string", enum: ["show", "redirect", "decline", "clarify"] },
     title: { type: "string" },
+    question: { type: "string" },
+    choices: { type: "array", items: { type: "string" } },
     intro: { type: "string" },
     slides: { type: "array", items: { type: "object", properties: {
       heading: { type: "string" }, text: { type: "string" }, year: { type: "string" },
@@ -88,10 +92,11 @@ async function anthropic(body) {
   return r.json();
 }
 
-async function makeShow(content) {
+async function makeShow(content, noClarify) {
+  const tool = noClarify ? { ...SHOW_TOOL, input_schema: { ...SHOW_TOOL.input_schema, properties: { ...SHOW_TOOL.input_schema.properties, type: { type: "string", enum: ["show", "redirect", "decline"] } } } } : SHOW_TOOL;
   const data = await anthropic({
-    model: MODEL, max_tokens: 4000, system: SYSTEM,
-    tools: [SHOW_TOOL], tool_choice: { type: "auto" },
+    model: MODEL, max_tokens: 4000, system: SYSTEM + (noClarify ? `\n\nThe viewer already answered a follow-up question (in parentheses). Do NOT use "clarify": make the best show you can.` : ""),
+    tools: [tool], tool_choice: { type: "auto" },
     messages: [{ role: "user", content }]
   });
   if (data.stop_reason === "max_tokens") throw new Error("too_long");
@@ -102,6 +107,12 @@ async function makeShow(content) {
     const txt = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
     const s = txt.indexOf("{"), e = txt.lastIndexOf("}");
     if (s >= 0 && e > s) j = JSON.parse(txt.slice(s, e + 1));
+  }
+  if (j && j.type === "clarify") {
+    const str = (v, n) => String(v || "").replace(/\s+/g, " ").trim().slice(0, n);
+    const choices = Array.isArray(j.choices) ? j.choices.map(c => str(c, 60)).filter(Boolean).slice(0, 4) : [];
+    if (!noClarify && str(j.question, 200)) return { type: "clarify", title: "One quick question", question: str(j.question, 200), choices };
+    throw new Error("bad_shape");   // retry: it must make a show this time
   }
   j = normalize(j);
   if (!j) throw new Error("bad_shape");
@@ -202,7 +213,7 @@ async function ownStarters(src, send){
     const j = await withRetry(async () => {
       const data = await anthropic({
         model: CHECK_MODEL, max_tokens: 600, thinking: { type: "disabled" },
-        system: `You suggest questions for "Remember When", a warm nostalgia slide-show site for older adults. Given a topic a visitor typed, write 5 short, specific questions (each under 14 words) that would make a great slide show about memories of that topic from the 1920s to the 2000s, phrased like "What was it like...", "What were...", "Who was...". Use well-known, real names, places and events. If the topic names a decade (like "TV in the 1950s"), every question must be about that decade only. If the topic is not appropriate for a family nostalgia site (sexual, hateful, violent, or about a private person), set ok to false and questions to [].`,
+        system: `You suggest questions for "Remember When", a warm nostalgia slide-show site for older adults. Given a topic a visitor typed, write 5 short, specific questions (each under 14 words) that would make a great slide show about memories of that topic from the 1920s to the 2000s, phrased like "What was it like...", "What were...", "Who was...". Use well-known, real names, places and events. If the topic names a decade or several decades (like "TV in the 1950s" or "fashion in the 1960s and 1970s"), every question must be about those decades only, spread across them. If the topic is not appropriate for a family nostalgia site (sexual, hateful, violent, or about a private person), set ok to false and questions to [].`,
         tools: [STARTERS_TOOL], tool_choice: { type: "auto" },
         messages: [{ role: "user", content: `Topic: ${topic}` }]
       });
@@ -236,6 +247,7 @@ module.exports = async (req, res) => {
   const prev = isGet ? "" : String(src.prev || "").slice(0, 3000);
   const context = isGet ? "" : String(src.context || "").slice(0, 200);
   const image = isGet ? "" : String(src.image || "");
+  const noClarify = String(src.nc || "") === "1" || more || !!image;   // only one follow-up, and never for photos or "Tell me more"
   if (image && (image.length > 4000000 || !/^[A-Za-z0-9+/=]+$/.test(image.slice(0, 200)))) return send(400, { error: "bad_image" });
   if (!question) return send(400, { error: "empty" });
 
@@ -257,10 +269,11 @@ module.exports = async (req, res) => {
   ] : user;
 
   let show;
-  try { show = await withRetry(() => makeShow(content)); }
+  try { show = await withRetry(() => makeShow(content, noClarify)); }
   catch (e) { return send(500, { error: "oops", reason: errorCode(e) }); }
 
   if (show.type === "decline") return send(200, DECLINE, true);
+  if (show.type === "clarify") return send(200, show, true);
   try {
     if (show.type === "show" && !(await safetyCheck(question, show))) return send(200, DECLINE, true);
   } catch (e) {
