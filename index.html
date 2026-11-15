@@ -141,6 +141,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
 .studybar button.on:disabled{opacity:1}
 .studybar #bCont:not(:disabled){background:var(--red);border-color:var(--red)}
 @media (max-width:560px){.studybar button{font-size:.9rem;min-height:64px}}
+@media (max-width:560px){.card{padding:14px}.card .yr{font-size:clamp(34px,10vw,54px)}.card .hd{font-size:1.1rem;margin-top:6px}.card .sub{margin-top:8px}}
 .explain{margin:10px 6px 4px;padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:var(--stage-ink);line-height:1.55}
 .explain .lt{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:#cdbd9c;font-weight:700;margin:4px 0 6px}
 .explain .ov{margin:0 0 12px;font-style:italic}
@@ -222,6 +223,24 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
 .ownrow input:focus{outline:none;border-color:#a8402e}
 .ownrow .go{white-space:nowrap}
 .ownlist{display:contents}
+.optlab{display:flex;align-items:center;gap:10px;font-weight:800;font-size:.82rem;letter-spacing:.8px;text-transform:uppercase;color:var(--teal-d);margin:0 0 8px}
+.optlab .num{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--teal);color:#fff;font-size:1rem;letter-spacing:0}
+.or{display:flex;align-items:center;gap:14px;margin:18px 4px;color:var(--red);font-weight:800;font-size:1.1rem;letter-spacing:2px}
+.or::before,.or::after{content:"";flex:1;height:2px;background:var(--line)}
+.pick.card2{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 2px 0 var(--line);margin-top:0}
+.pick .sub2{margin:0 0 4px;color:var(--soft);font-size:.95rem}
+#ownRow{margin-top:14px}
+.pickNow{margin:14px 2px 0;font-weight:800;color:var(--teal-d);font-size:.95rem}
+.pickNow:empty{display:none}
+.clarify{color:var(--ink);background:var(--card);border:3px solid var(--teal);border-radius:20px;padding:18px;margin:0 0 14px}
+.clarify .ctag{font-size:.78rem;letter-spacing:.8px;text-transform:uppercase;color:var(--teal-d);font-weight:800;margin-bottom:6px}
+.clarify .cq{color:var(--ink);font-family:Fraunces,Georgia,serif;font-size:1.25rem;font-weight:700;margin:0 0 12px;line-height:1.3}
+.cchoices{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.cchoices button{border:2px solid var(--teal);background:#fff;border-radius:999px;padding:10px 18px;font-weight:700;font-size:.95rem;color:var(--teal-d);min-height:48px}
+.cchoices button:hover{background:var(--teal);color:#fff}
+.crow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.crow input{flex:1;min-width:180px;font:inherit;font-size:1.05rem;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fffaf0;color:inherit}
+.crow input:focus{outline:none;border-color:var(--teal)}
 .ownwait{grid-column:1/-1;padding:10px 4px;color:#6b5a44;font-style:italic}
 </style>
 </head>
@@ -239,13 +258,14 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
   </header>
 
   <section class="ask">
+    <div class="optlab"><span class="num">1</span> Ask your own question</div>
     <h1>What would you like to remember?</h1>
     <div class="row">
       <button class="mic" id="mic" aria-label="Speak your question">🎤</button>
-      <div class="field"><input id="q" type="text" maxlength="300" placeholder="Try: What was it like going to a drive-in?" aria-label="Your question" enterkeyhint="go"></div>
+      <div class="field"><input id="q" type="text" maxlength="300" placeholder="Be specific, like: men's fashion in the 1970s" aria-label="Your question" enterkeyhint="go"></div>
       <button class="go" id="go">Show me</button>
     </div>
-    <div class="hint" id="hint">Tap the red microphone and ask out loud, or type your question.</div>
+    <div class="hint" id="hint">Be specific: name a decade, a person, a show or a place. Or tap the red microphone and ask out loud.</div>
     <div class="photoUp">
       <label for="file">📷 Share an old photo<input id="file" type="file" accept="image/*" class="hide"></label>
       <img id="thumb" class="hide" alt="Your photo">
@@ -254,17 +274,29 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     </div>
   </section>
 
-  <section class="pick" aria-label="Ideas to explore">
-    <p class="howpick">Pick a <b>decade</b>, a <b>topic</b>, or <b>both</b> (like TV in the '50s). Tap again to unpick.</p>
-    <h2>Pick a decade</h2>
+  <div class="or" aria-hidden="true">OR</div>
+
+  <section class="pick card2" aria-label="Pick decades and a topic">
+    <div class="optlab"><span class="num">2</span> Pick decades and a topic</div>
+    <p class="sub2">We'll show you questions to tap. Tap a button again to unpick it.</p>
+    <h2>Pick one or more decades</h2>
     <div class="tabs" id="decades"></div>
     <h2>Pick a topic</h2>
     <div class="tabs" id="topics"></div>
+    <div class="ownrow" id="ownRow"><input id="ownTopic" type="text" maxlength="80" placeholder="Or type your own topic, like roller rinks" aria-label="Or type your own topic" enterkeyhint="go"><button id="ownGo" class="go">Show me questions</button></div>
+    <div class="pickNow" id="pickNow" aria-live="polite"></div>
     <div class="starters" id="starters"></div>
   </section>
 
   <section class="show" id="show" aria-live="polite">
-    <div class="marquee"><div class="now" id="nowLab">Tonight's feature</div><div class="showTitle" id="showTitle">Remember When</div><div class="count" id="count">Pick a decade or ask a question</div></div>
+    <div class="clarify hide" id="clarify" role="dialog" aria-label="One quick question">
+      <div class="ctag">One quick question</div>
+      <p class="cq" id="cq"></p>
+      <div class="cchoices" id="cchoices"></div>
+      <div class="crow"><button class="mic" id="cmic" aria-label="Answer out loud">🎤</button><input id="cbox" type="text" maxlength="150" placeholder="Or type your answer" aria-label="Your answer" enterkeyhint="go"><button class="go" id="cgo">Show me</button></div>
+      <div class="hint" id="chint">Tap an answer, or type your own.</div>
+    </div>
+    <div class="marquee"><div class="now" id="nowLab">Tonight's feature</div><div class="showTitle" id="showTitle">Remember When</div><div class="count" id="count">Ask a question, or pick decades and a topic</div></div>
     <div class="theater open" id="theater">
     <div class="valance"></div><div class="curtain l"></div><div class="curtain r"></div>
     <div class="loading" id="loading"><div class="leader"><i></i><span id="leadNum">5</span></div><div id="loadMsg">Coming right up…</div></div>
@@ -282,7 +314,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
         <button id="bExplain" disabled>📖 About this picture</button>
       </div>
       <div class="explain hide" id="explain" aria-live="polite"></div>
-      <div class="caption"><h3 id="hd">Ask about any time you remember</h3><p id="tx">Pick a decade or a topic above, or ask your own question. You'll get a short slide show of real archive photos, read aloud, one picture at a time.</p><div class="credit" id="credit"></div>
+      <div class="caption"><h3 id="hd">Ask about any time you remember</h3><p id="tx">Ask your own question in box 1, or pick decades and a topic in box 2. You'll get a short slide show of real archive photos, read aloud, one picture at a time.</p><div class="credit" id="credit"></div>
         <div class="betterPic hide" id="betterPic">
           <p class="note"><b>Not quite the right picture?</b> We only use photos that are free to share, and our AI picks the closest match it can find, so sometimes it misses. Tell us what you'd like to see and we'll look for a better one, if one is available.</p>
           <div class="acts"><button class="main" id="describeBtn">✏️ Describe the picture I'd like</button><button id="anotherBtn">🔄 Show me a different one</button></div>
@@ -366,50 +398,58 @@ const TOPICS = {
   "Special Events": ["What was Live Aid like in 1985?", "What was the 1964 World's Fair like?", "What was the 1976 Bicentennial like?", "What was the 1984 Los Angeles Olympics like?", "What was Hands Across America in 1986?"],
   "Big Moments": ["What was V-J Day like in 1945?", "What was it like when the Beatles first came to America?", "What was Woodstock like?", "What was the first Earth Day like?", "What was it like when the Berlin Wall fell?"]
 };
-// A decade, a topic, or both. Both together gets questions made for that pair (like TV in the 1950s).
-let pickDecade = "The '50s", pickTopic = "", ownMode = false;
+// Option 2: one or more decades, plus a topic (a button, or the visitor's own typed topic).
+let pickDecades = [], pickTopic = "", ownActive = false;
+const DEC_ORDER = Object.keys(DECADES);
 const decadeWords = d => d === "The 2000s" ? "the 2000s" : d.replace(/^The '(\d0)s$/, (m, n) => "the 19" + n + "s");
+function decLabel(){
+  const w = pickDecades.slice().sort((x, y) => DEC_ORDER.indexOf(x) - DEC_ORDER.indexOf(y)).map(decadeWords);
+  if (!w.length) return "";
+  const bare = w.map((x, i) => i ? x.replace(/^the /, "") : x);
+  return bare.length === 1 ? bare[0] : bare.slice(0, -1).join(", ") + " and " + bare[bare.length - 1];
+}
+function clearPicks(){ pickDecades = []; pickTopic = ""; ownActive = false; $("ownTopic").value = ""; renderTabs(); }
 function renderTabs(){
   const mk = (box, obj, isDecade) => { box.innerHTML = ""; Object.keys(obj).forEach(k => {
-    const b = document.createElement("button"); const on = !ownMode && (isDecade ? pickDecade === k : pickTopic === k);
+    const b = document.createElement("button"); const on = isDecade ? pickDecades.includes(k) : (!ownActive && pickTopic === k);
     b.className = "tab" + (on ? " on" : ""); b.textContent = k; b.setAttribute("aria-pressed", on ? "true" : "false");
-    b.onclick = () => { ownMode = false; if (isDecade) pickDecade = pickDecade === k ? "" : k; else pickTopic = pickTopic === k ? "" : k; renderTabs(); };
+    b.onclick = () => {
+      if (isDecade) pickDecades = pickDecades.includes(k) ? pickDecades.filter(x => x !== k) : pickDecades.concat(k);
+      else { ownActive = false; $("ownTopic").value = ""; pickTopic = pickTopic === k ? "" : k; }
+      renderTabs();
+    };
     box.appendChild(b); }); };
   mk($("decades"), DECADES, true); mk($("topics"), TOPICS, false);
-  // "Question ideas for any topic": type any topic and get 5 questions about it
-  const own = document.createElement("button"); own.className = "tab own" + (ownMode ? " on" : ""); own.textContent = "💡 Question ideas for any topic";
-  own.onclick = () => { ownMode = !ownMode; renderTabs(); if (ownMode) setTimeout(() => { const i = $("ownTopic"); if (i) i.focus({ preventScroll: true }); }, 50); };
-  $("topics").appendChild(own);
+  paintStarters();
+}
+function paintStarters(){
+  const dl = decLabel(), topic = ownActive ? $("ownTopic").value.trim() : pickTopic;
+  $("pickNow").textContent = (topic || dl) ? "Ideas for: " + [topic, dl].filter(Boolean).join(" · ") : "";
   $("starters").innerHTML = "";
-  if (ownMode) {
-    const row = document.createElement("div"); row.className = "ownrow";
-    row.innerHTML = '<input id="ownTopic" type="text" maxlength="80" aria-label="Type any topic" enterkeyhint="go"><button id="ownGo" class="go">Show me questions</button>';
-    $("starters").appendChild(row);
-    const list = document.createElement("div"); list.id = "ownList"; list.className = "ownlist"; $("starters").appendChild(list);
-    const goOwn = () => { const v = $("ownTopic").value.trim(); if (v.length < 2) { $("ownTopic").focus(); return; } unlock(); ownStarters(v); };
-    $("ownGo").onclick = goOwn;
-    $("ownTopic").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); goOwn(); } };
-    if (ownLast.topic) { $("ownTopic").value = ownLast.topic; paintOwn(ownLast.qs); }
-    return;
+  if (ownActive && topic) { ownStarters(topic + (dl ? " in " + dl : "")); return; }
+  if (!topic && !dl) { const n = document.createElement("div"); n.className = "ownwait"; n.textContent = "Pick one or more decades, a topic, or both, and questions will show up here."; $("starters").appendChild(n); return; }
+  if (topic && dl) { comboStarters(topic, dl); return; }
+  let list;
+  if (topic) list = TOPICS[topic] || [];
+  else {   // decades only: take turns from each decade's list
+    const ls = pickDecades.slice().sort((x, y) => DEC_ORDER.indexOf(x) - DEC_ORDER.indexOf(y)).map(d => DECADES[d] || []);
+    list = []; for (let i = 0; list.length < 5 && i < 5; i++) ls.forEach(l => { if (l[i] && list.length < 5) list.push(l[i]); });
   }
-  if (pickDecade && pickTopic) { comboStarters(pickTopic, pickDecade); return; }
-  const list = DECADES[pickDecade] || TOPICS[pickTopic] || [];
-  if (!list.length) { const n = document.createElement("div"); n.className = "ownwait"; n.textContent = "Pick a decade or a topic to see some ideas."; $("starters").appendChild(n); }
   list.forEach(q => $("starters").appendChild(starterBtn(q)));
   addTip();
 }
 function addTip(){
-  // last box: a reminder that the big box at the top takes any question
-  const tip = document.createElement("button"); tip.className = "starter tip"; tip.textContent = "⬆️ Or ask your own question at the top";
-  tip.onclick = () => focusAsk("", "Type any question, then tap Show me.");
+  // last box: a reminder that box 1 takes any question
+  const tip = document.createElement("button"); tip.className = "starter tip"; tip.textContent = "⬆️ Or ask your own question in box 1";
+  tip.onclick = () => { clearPicks(); focusAsk("", "Type any question, then tap Show me."); };
   $("starters").appendChild(tip);
 }
 // Both picked: 5 questions made for that pair, plus the TV/movie fill-in when it fits
 const comboCache = new Map();
-async function comboStarters(topic, decade){
-  const key = topic + "|" + decade, label = topic + " in " + decadeWords(decade);
+async function comboStarters(topic, dl){
+  const key = topic + "|" + dl, label = topic + " in " + dl;
   const paint = qs => {
-    if (pickTopic !== topic || pickDecade !== decade || ownMode) return;
+    if (pickTopic !== topic || decLabel() !== dl || ownActive) return;
     $("starters").innerHTML = "";
     const fill = (TOPICS[topic] || []).find(x => x && x.fill);
     qs.slice(0, fill ? 4 : 5).forEach(q => $("starters").appendChild(starterBtn(q)));   // keeps an even 6 boxes
@@ -437,28 +477,29 @@ function focusAsk(text, hint){
   setTimeout(() => { try { q.focus({ preventScroll: true }); q.setSelectionRange(q.value.length, q.value.length); } catch(e) {} }, 350);
   if (hint) $("hint").textContent = hint;
 }
-const OWN = "__own__";
-let ownLast = { topic: "", qs: [] };
+const ownCache = new Map();
 function starterBtn(q){
   const b = document.createElement("button"); b.className = "starter";
   if (q && q.fill) { b.classList.add("fill"); b.textContent = q.label; b.onclick = () => focusAsk(q.fill, "Type the name, then tap Show me."); return b; }
-  b.textContent = q; b.onclick = () => { unlock(); $("q").value = q; ask(q); }; return b;
+  b.textContent = q; b.onclick = () => { unlock(); viaMic = false; $("q").value = q; ask(q); }; return b;
 }
-function paintOwn(qs){
-  const box = $("ownList"); if (!box) return; box.innerHTML = "";
-  qs.forEach(q => box.appendChild(starterBtn(q)));
-}
-async function ownStarters(topic){
-  const box = $("ownList"); box.innerHTML = '<div class="ownwait">Thinking of good questions about ' + topic.replace(/[<>&]/g, "") + '…</div>';
+async function ownStarters(label){
+  const paint = qs => { if (!ownActive) return; $("starters").innerHTML = ""; qs.forEach(q => $("starters").appendChild(starterBtn(q))); addTip(); };
+  if (ownCache.has(label)) return paint(ownCache.get(label));
+  $("starters").innerHTML = '<div class="ownwait">Thinking of good questions about ' + label.replace(/[<>&]/g, "") + '…</div>';
   try {
-    const r = await fetch("/api/ask?part=starters&topic=" + encodeURIComponent(topic));
+    const r = await fetch("/api/ask?part=starters&topic=" + encodeURIComponent(label));
     const d = await r.json();
     if (!r.ok || !Array.isArray(d.questions) || !d.questions.length) throw new Error(d.message || "");
-    ownLast = { topic, qs: d.questions }; paintOwn(d.questions);
+    ownCache.set(label, d.questions); paint(d.questions);
   } catch (e) {
-    box.innerHTML = '<div class="ownwait">' + (e.message || "Hmm, I couldn't think of questions for that one. Try another topic, or just type your question in the box at the top.") + '</div>';
+    if (!ownActive) return;
+    $("starters").innerHTML = '<div class="ownwait">' + (e.message || "Hmm, I couldn't think of questions for that one. Try another topic, or type your question in box 1.").replace(/[<>&]/g, "") + '</div>';
   }
 }
+const goOwn = () => { const v = $("ownTopic").value.trim(); if (v.length < 2) { $("ownTopic").focus(); return; } unlock(); ownActive = true; pickTopic = ""; renderTabs(); };
+$("ownGo").onclick = goOwn;
+$("ownTopic").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); goOwn(); } };
 renderTabs();
 
 /* ---------- text size ---------- */
@@ -652,7 +693,7 @@ function sayAlone(text){ if (playing) return; say(text); }
 
 /* ---------- microphone ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, listening = false;
+let rec = null, listening = false, viaMic = false;
 if (!SR) {
   $("hint").textContent = "Tap the box, then the 🎤 on your keyboard to speak. Or just type.";
   $("mic").onclick = () => { unlock(); $("q").focus(); };
@@ -661,7 +702,7 @@ if (!SR) {
   rec.onresult = e => { let s = ""; for (const r of e.results) s += r[0].transcript; $("q").value = s; };
   rec.onend = () => {
     listening = false; $("mic").classList.remove("listening"); $("mic").textContent = "🎤";
-    if ($("q").value.trim()) { $("hint").textContent = "Look right? Tap Show me. (Or tap the microphone to try again.)"; $("go").classList.add("ready"); }
+    if ($("q").value.trim()) { viaMic = true; $("hint").textContent = "Look right? Tap Show me. (Or tap the microphone to try again.)"; $("go").classList.add("ready"); }
     else $("hint").textContent = "Didn't catch that. Tap the microphone and try again.";
   };
   rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $("hint").textContent = "The microphone is blocked. Allow it in your browser, or type instead."; };
@@ -669,11 +710,14 @@ if (!SR) {
     unlock();
     if (listening) { rec.stop(); return; }
     pause(); $("q").value = ""; $("go").classList.remove("ready");
+    if (pickDecades.length || pickTopic || ownActive) clearPicks();
     try { rec.start(); listening = true; $("mic").classList.add("listening"); $("mic").textContent = "👂"; $("hint").textContent = "Listening… go ahead and ask."; } catch(e) {}
   };
 }
-$("go").onclick = () => { unlock(); const t = $("q").value.trim(); if (t || photo) ask(t || "What era is this photo from, and what was life like then?"); else { $("q").focus(); $("hint").textContent = "Type or say a question first."; } };
+$("go").onclick = () => { unlock(); const t = $("q").value.trim(); if (t || photo) ask(t || "What era is this photo from, and what was life like then?", { voice: viaMic && !!t }); else { $("q").focus(); $("hint").textContent = "Type or say a question first."; } };
 $("q").addEventListener("keydown", e => { if (e.key === "Enter") $("go").click(); });
+// Box 1 and box 2 never mix: typing a question clears the decade and topic picks
+$("q").addEventListener("input", () => { viaMic = false; if (pickDecades.length || pickTopic || ownActive) clearPicks(); });
 
 /* ---------- shared photo ---------- */
 let photo = "";
@@ -715,6 +759,7 @@ async function ask(q, opts = {}){
   if (busy) return;
   busy = true; pause(); stopSound();
   lastQ = q;
+  hideClarify();
   toShow();
   $("err").classList.add("hide");
   $("theater").classList.remove("open");
@@ -728,9 +773,10 @@ async function ask(q, opts = {}){
       r = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ q, more: !!opts.more, prev: opts.prev || "", context: opts.context || "", image: sendPhoto ? photo : "" }) });
     } else {
-      r = await fetch("/api/ask?q=" + encodeURIComponent(q.toLowerCase()));
+      r = await fetch("/api/ask?q=" + encodeURIComponent(q.toLowerCase()) + (opts.noClarify ? "&nc=1" : ""));
     }
     const d = await r.json().catch(() => ({}));
+    if (r.ok && d.type === "clarify" && d.question) { $("q").value = ""; $("go").classList.remove("ready"); showClarify(q, d, !!opts.voice); return; }
     if (!r.ok || !d.slides) throw new Error(d.reason || "S6");
     if (sendPhoto) clearPhoto();
     $("q").value = ""; $("go").classList.remove("ready"); $("hint").textContent = "Tap the red microphone and ask out loud, or type your question.";
@@ -742,6 +788,47 @@ async function ask(q, opts = {}){
     clearInterval(msgTimer); $("loading").classList.remove("on"); busy = false;
     setTimeout(() => $("theater").classList.add("open"), 150);
   }
+}
+
+/* ---------- one quick question (when a request is too broad to make a good show) ---------- */
+let clarOrig = "", clarVoice = false, cRec = null, cListening = false;
+function hideClarify(){ $("clarify").classList.add("hide"); if (cListening && cRec) { try { cRec.abort(); } catch(e) {} } }
+function showClarify(orig, d, voice){
+  clarOrig = orig; clarVoice = voice;
+  $("showTitle").textContent = "One quick question"; $("nowLab").textContent = "From the projection booth"; $("count").textContent = "";
+  $("cq").textContent = d.question;
+  $("cchoices").innerHTML = "";
+  (d.choices || []).forEach(c => { const b = document.createElement("button"); b.textContent = c; b.onclick = () => answerClarify(c); $("cchoices").appendChild(b); });
+  $("cbox").value = ""; $("chint").textContent = voice ? "Answer out loud, tap an answer, or type your own." : "Tap an answer, or type your own.";
+  $("clarify").classList.remove("hide");
+  toShow();
+  if (voice) say(d.question, () => setTimeout(clarListen, 250));
+}
+function answerClarify(a){
+  a = String(a || "").trim(); if (!a) { $("cbox").focus(); $("chint").textContent = "Tap an answer, or type your own first."; return; }
+  hideClarify();
+  ask(clarOrig + " (" + a + ")", { noClarify: true, voice: clarVoice });
+}
+$("cgo").onclick = () => { unlock(); answerClarify($("cbox").value); };
+$("cbox").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("cgo").click(); } });
+function clarListen(){
+  if (!cRec || cListening || $("clarify").classList.contains("hide")) return;
+  $("cbox").value = "";
+  try { cRec.start(); cListening = true; $("cmic").classList.add("listening"); $("cmic").textContent = "👂"; $("chint").textContent = "Listening… go ahead and answer."; } catch(e) {}
+}
+if (SR) {
+  cRec = new SR(); cRec.lang = "en-US"; cRec.interimResults = true; cRec.continuous = false;
+  cRec.onresult = e => { let s = ""; for (const r of e.results) s += r[0].transcript; $("cbox").value = s; };
+  cRec.onend = () => {
+    cListening = false; $("cmic").classList.remove("listening"); $("cmic").textContent = "🎤";
+    if ($("clarify").classList.contains("hide")) return;
+    if ($("cbox").value.trim()) { clarVoice = true; answerClarify($("cbox").value); }   // spoken answer goes straight to the show
+    else $("chint").textContent = "Didn't catch that. Tap the microphone and try again, or tap an answer.";
+  };
+  cRec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $("chint").textContent = "The microphone is blocked. Tap an answer or type instead."; };
+  $("cmic").onclick = () => { unlock(); if (cListening) { cRec.stop(); return; } stopSound(); clarListen(); };
+} else {
+  $("cmic").onclick = () => { $("cbox").focus(); $("chint").textContent = "Tap the 🎤 on your keyboard to speak, or just type."; };
 }
 
 function startShow(d){
@@ -1056,7 +1143,7 @@ function buildLinks(s){
 }
 
 /* ---------- welcome ---------- */
-paintCard("Now Showing", "Your memories, on the big screen", "Pick a decade or ask a question to begin");
+paintCard("Now Showing", "Your memories, on the big screen", "Ask a question, or pick decades and a topic, to begin");
 $("prev").disabled = true; $("next").disabled = true; $("morePh").classList.add("hide");
 
 // Start over: stops everything and clears the topic, so the visitor can ask something new (or pick another tool)
