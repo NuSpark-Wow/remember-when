@@ -284,7 +284,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <h2>Pick a topic</h2>
     <div class="tabs" id="topics"></div>
     <h2>Or type your own topic</h2>
-    <p class="sub2">Like roller rinks, your hometown, or a favorite band.</p>
+    <p class="sub2">A topic not shown above, like roller rinks, your hometown, or a favorite band. Your decades stay picked.</p>
     <div class="ownrow" id="ownRow"><input id="ownTopic" type="text" maxlength="80" aria-label="Or type your own topic" enterkeyhint="go"><button id="ownGo" class="go">Show me questions</button></div>
     <div class="pickNow" id="pickNow" aria-live="polite"></div>
     <div class="starters" id="starters"></div>
@@ -441,9 +441,11 @@ function paintStarters(){
   addTip();
 }
 function addTip(){
-  // last box: a reminder that box 1 takes any question
-  const tip = document.createElement("button"); tip.className = "starter tip"; tip.textContent = "⬆️ Or ask your own question in box 1";
-  tip.onclick = () => { clearPicks(); focusAsk("", "Type any question, then tap Show me."); };
+  // last box: another topic for the same decades (the decades stay picked)
+  const dl = decLabel();
+  const tip = document.createElement("button"); tip.className = "starter tip";
+  tip.textContent = dl ? "✏️ Another topic for " + dl + "? Type it in the box above." : "✏️ Want a different topic? Type it in the box above.";
+  tip.onclick = () => { const o = $("ownTopic"); o.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => o.focus({ preventScroll: true }), 350); };
   $("starters").appendChild(tip);
 }
 // Both picked: 5 questions made for that pair, plus the TV/movie fill-in when it fits
@@ -864,7 +866,9 @@ function startShow(d){
 // Each scene sends its own words, so the photo check can see whether a picture truly fits
 async function fetchPics(q, scene){
   if (!q) return [];
-  try { const r = await fetch("/api/images?q=" + encodeURIComponent(q) + "&scene=" + encodeURIComponent(scene.slice(0, 500))); const d = await r.json(); return d.images || []; } catch(e) { return []; }
+  // the show's main subject and era go with every photo search, so the photo check can reject look-alikes
+  const anchor = (show && show.subject ? "&subject=" + encodeURIComponent(show.subject) : "") + (show && show.era ? "&era=" + encodeURIComponent(show.era) : "");
+  try { const r = await fetch("/api/images?q=" + encodeURIComponent(q) + "&scene=" + encodeURIComponent(scene.slice(0, 500)) + anchor); const d = await r.json(); return d.images || []; } catch(e) { return []; }
 }
 async function findPic(i){
   const s = slides[i]; const run = show;
@@ -1108,7 +1112,7 @@ async function findWanted(){
   const s = slides[i]; const scene = (s.heading ? s.heading + ". " : "") + s.text;
   $("wantGo").disabled = true; $("picStatus").textContent = "Searching the archives…";
   try {
-    const r = await fetch("/api/images?q=x&want=" + encodeURIComponent(want) + "&scene=" + encodeURIComponent(scene.slice(0, 400)));
+    const r = await fetch("/api/images?q=x&want=" + encodeURIComponent(want) + "&scene=" + encodeURIComponent(scene.slice(0, 400)) + (show && show.subject ? "&subject=" + encodeURIComponent(show.subject) : "") + (show && show.era ? "&era=" + encodeURIComponent(show.era) : ""));
     const d = await r.json();
     const list = (d.images || []).filter(p => !used.has(p.src) || (pics[i] && pics[i].src === p.src));
     if (i !== idx) return;
