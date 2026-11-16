@@ -808,7 +808,9 @@ function showClarify(orig, d, voice){
   $("showTitle").textContent = "One quick question"; $("nowLab").textContent = "From the projection booth"; $("count").textContent = "";
   $("cq").textContent = d.question;
   $("cchoices").innerHTML = "";
-  (d.choices || []).forEach(c => { const b = document.createElement("button"); b.textContent = c; b.onclick = () => answerClarify(c); $("cchoices").appendChild(b); });
+  // the default is always a general overview: it's the first answer, so one tap gets it
+  const chs = (d.choices || []).filter(c => !/general overview|whole story|all the decades/i.test(c));
+  ["A general overview"].concat(chs).slice(0, 4).forEach(c => { const b = document.createElement("button"); b.textContent = c; b.onclick = () => answerClarify(c); $("cchoices").appendChild(b); });
   $("cbox").value = ""; $("chint").textContent = voice ? "Answer out loud, tap an answer, or type your own." : "Tap an answer, or type your own.";
   $("clarify").classList.remove("hide");
   toShow();
@@ -833,7 +835,7 @@ if (SR) {
     cListening = false; $("cmic").classList.remove("listening"); $("cmic").textContent = "🎤";
     if ($("clarify").classList.contains("hide")) return;
     if ($("cbox").value.trim()) { clarVoice = true; answerClarify($("cbox").value); }   // spoken answer goes straight to the show
-    else $("chint").textContent = "Didn't catch that. Tap the microphone and try again, or tap an answer.";
+    else $("chint").textContent = "Didn't catch that. Tap the microphone and try again, or tap \"A general overview.\"";
   };
   cRec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $("chint").textContent = "The microphone is blocked. Tap an answer or type instead."; };
   $("cmic").onclick = () => { unlock(); if (cListening) { cRec.stop(); return; } stopSound(); clarListen(); };
