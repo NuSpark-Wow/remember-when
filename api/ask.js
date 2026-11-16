@@ -58,6 +58,7 @@ OTHER FIELDS (shows only):
   * sports: the team or athlete + the element + year (for example "Mike Schmidt Phillies 1980", "Phillies World Series 1980 parade").
   * events and places: the proper name + the element (for example "Woodstock festival stage", "Route 66 diner sign", "1964 World's Fair Unisphere").
   * everyday topics: the element + its setting + decade, in lowercase (for example "1950s diner jukebox", "1960s kitchen percolator", "1970s roller rink skates").
+  * when the whole show is about ONE person or ONE show, every "image_query" must include that person's or show's name, even when a scene names someone else (for example, in a Rich Little show, the Dean Martin roast scene searches "Rich Little Dean Martin roast", never "Dean Martin" alone).
   Never search the element by itself ("shoe phone" alone finds a real shoe on a wire). Make "image_backup" the topic anchor alone (for example "Don Adams Get Smart", "1950s diner"), so a photo of the right topic still wins if no photo of the element exists.
 - "memory_prompt": one friendly question inviting the viewer to share their own memory, good for conversation with family or friends (for example "Did you have a favorite song on the jukebox?").
 - "did_you_know": one surprising, true fact (1 to 2 sentences).
