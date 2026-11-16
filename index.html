@@ -880,7 +880,8 @@ async function fetchPics(q, scene){
 }
 async function findPic(i){
   const s = slides[i]; const run = show;
-  const scene = (s.heading ? s.heading + ". " : "") + s.text;
+  // the show's title goes in front of every scene, so the photo search and check know who the scene is really about
+  const scene = (show && show.title ? show.title + " — " : "") + (s.heading ? s.heading + ". " : "") + s.text;
   let list = await fetchPics(s.image_query, scene);
   if (!list.filter(p => !used.has(p.src)).length) list = list.concat(await fetchPics(s.image_backup, scene));
   if (run !== show) return;
@@ -1117,7 +1118,7 @@ $("anotherBtn").onclick = () => {
 async function findWanted(){
   const i = idx; const want = $("wantBox").value.trim();
   if (!want) { $("wantBox").focus(); return; }
-  const s = slides[i]; const scene = (s.heading ? s.heading + ". " : "") + s.text;
+  const s = slides[i]; const scene = (show && show.title ? show.title + " — " : "") + (s.heading ? s.heading + ". " : "") + s.text;
   $("wantGo").disabled = true; $("picStatus").textContent = "Searching the archives…";
   try {
     const r = await fetch("/api/images?q=x&want=" + encodeURIComponent(want) + "&scene=" + encodeURIComponent(scene.slice(0, 400)) + (show && show.subject ? "&subject=" + encodeURIComponent(show.subject) : "") + (show && show.era ? "&era=" + encodeURIComponent(show.era) : ""));
