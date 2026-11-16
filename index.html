@@ -284,8 +284,8 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <h2>Pick a topic</h2>
     <div class="tabs" id="topics"></div>
     <h2>Or type your own topic</h2>
-    <p class="sub2">A topic not shown above, like roller rinks, your hometown, or a favorite band. Your decades stay picked.</p>
-    <div class="ownrow" id="ownRow"><input id="ownTopic" type="text" maxlength="80" aria-label="Or type your own topic" enterkeyhint="go"><button id="ownGo" class="go">Show me questions</button></div>
+    <p class="sub2">A topic not shown above, like roller rinks, your hometown, or a favorite band. Tap Show me for a show in the decades you picked, plus more questions to explore.</p>
+    <div class="ownrow" id="ownRow"><input id="ownTopic" type="text" maxlength="80" aria-label="Or type your own topic" enterkeyhint="go"><button id="ownGo" class="go">Show me</button></div>
     <div class="pickNow" id="pickNow" aria-live="polite"></div>
     <div class="starters" id="starters"></div>
   </section>
@@ -426,7 +426,7 @@ function renderTabs(){
 }
 function paintStarters(){
   const dl = decLabel(), topic = ownActive ? $("ownTopic").value.trim() : pickTopic;
-  $("pickNow").textContent = (topic || dl) ? "Ideas for: " + [topic, dl].filter(Boolean).join(" · ") : "";
+  $("pickNow").textContent = (topic || dl) ? (ownActive && topic ? "More shows about: " : "Ideas for: ") + [topic, dl].filter(Boolean).join(" · ") : "";
   $("starters").innerHTML = "";
   if (ownActive && topic) { ownStarters(topic + (dl ? " in " + dl : "")); return; }
   if (!topic && !dl) { const n = document.createElement("div"); n.className = "ownwait"; n.textContent = "Pick one or more decades, a topic, or both, and questions will show up here."; $("starters").appendChild(n); return; }
@@ -501,7 +501,13 @@ async function ownStarters(label){
     $("starters").innerHTML = '<div class="ownwait">' + (e.message || "Hmm, I couldn't think of questions for that one. Try another topic, or type your question in box 1.").replace(/[<>&]/g, "") + '</div>';
   }
 }
-const goOwn = () => { const v = $("ownTopic").value.trim(); if (v.length < 2) { $("ownTopic").focus(); return; } unlock(); ownActive = true; pickTopic = ""; renderTabs(); };
+// Own topic: the show starts right away (your topic in your decades), and 5 related questions load under the box for the next show
+const goOwn = () => {
+  const v = $("ownTopic").value.trim(); if (v.length < 2) { $("ownTopic").focus(); return; }
+  unlock(); ownActive = true; pickTopic = ""; renderTabs();
+  const dl = decLabel(); viaMic = false;
+  ask(v + (dl ? " in " + dl : ""));
+};
 $("ownGo").onclick = goOwn;
 $("ownTopic").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); goOwn(); } };
 renderTabs();
