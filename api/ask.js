@@ -45,12 +45,20 @@ THE SLIDE SHOW ("slides"): 6 to 7 slides that tell a story in order, like a phot
   * For a famous place or event, use its proper name with Capital Letters (for example "Route 66", "Woodstock festival", "Monterey Pop Festival", "Shea Stadium").
   * For everyday things, use the physical thing plus its decade, in lowercase (for example "1950s drive-in theater", "soda fountain 1940s", "1960s television set", "jukebox").
   * No feelings, no abstract ideas, no brand slogans: a photographer could not take a picture of "nostalgia" or "freedom".
-- "image_backup": a broader, everyday 1 to 3 word search that would still fit the slide if the first finds nothing (for example "electric guitar", "rock concert crowd", "drive-in theater", "television set"). Never a name.
+- "image_backup": a broader, everyday 1 to 3 word search that would still fit the slide if the first finds nothing (for example "electric guitar", "rock concert crowd", "drive-in theater", "television set"). Never a name, EXCEPT for the key-element rule below, where it is the topic anchor.
 
 The first slide sets the scene. The last slide is a gentle wrap-up that invites a memory.
 
 OTHER FIELDS (shows only):
 - "intro": one short spoken welcome line for the start of the show (under 20 words).
+- "subject": the show's main subject with what kind of thing it is (for example "Get Smart TV show", "Lenny Bruce comedian", "1960s men's fashion", "drive-in theaters"). Every photo in the show is checked against it.
+- "era": the decade or decades the show is about (for example "1960s" or "1950s and 1960s"). Use "" if it truly spans many decades.
+- PHOTO RULE for key elements (ANY topic): when a slide showcases a key element (a prop or gadget, a costume, a character, a famous moment, a dish, a car model, a toy, a dance, a building, a piece of equipment), the photo must show that element inside its topic. Write "image_query" as the topic anchor + the element, up to 6 words:
+  * person, show, movie or band: the star's real name + the show or person + the element (for example "Don Adams Get Smart shoe phone", "Adam West Batman Batmobile", "Elvis Presley gold suit").
+  * sports: the team or athlete + the element + year (for example "Mike Schmidt Phillies 1980", "Phillies World Series 1980 parade").
+  * events and places: the proper name + the element (for example "Woodstock festival stage", "Route 66 diner sign", "1964 World's Fair Unisphere").
+  * everyday topics: the element + its setting + decade, in lowercase (for example "1950s diner jukebox", "1960s kitchen percolator", "1970s roller rink skates").
+  Never search the element by itself ("shoe phone" alone finds a real shoe on a wire). Make "image_backup" the topic anchor alone (for example "Don Adams Get Smart", "1950s diner"), so a photo of the right topic still wins if no photo of the element exists.
 - "memory_prompt": one friendly question inviting the viewer to share their own memory, good for conversation with family or friends (for example "Did you have a favorite song on the jukebox?").
 - "did_you_know": one surprising, true fact (1 to 2 sentences).
 - "more": exactly 3 short follow-up topics they might enjoy next, written as questions.
@@ -77,6 +85,7 @@ const SHOW_TOOL = {
       image_query: { type: "string" }, image_backup: { type: "string" }
     } } },
     memory_prompt: { type: "string" },
+    subject: { type: "string" }, era: { type: "string" },
     did_you_know: { type: "string" },
     more: { type: "array", items: { type: "string" } }
   }, required: ["type", "title", "slides"] }
@@ -130,6 +139,7 @@ function normalize(j) {
   j.title = str(j.title, 100) || "Remember When";
   j.intro = str(j.intro, 200);
   j.memory_prompt = str(j.memory_prompt, 200);
+  j.subject = str(j.subject, 80); j.era = str(j.era, 40);
   j.did_you_know = str(j.did_you_know, 400);
   j.more = Array.isArray(j.more) ? j.more.map(m => str(m, 120)).filter(Boolean).slice(0, 3) : [];
   if (!["show", "redirect", "decline"].includes(j.type)) j.type = "show";

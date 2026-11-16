@@ -139,6 +139,8 @@ const LOOK_SYSTEM = `You check photos for a nostalgia slide show. You get one sc
 Keep a photo only if a viewer would instantly see it belongs with this scene:
 - If the scene is about a specific person, TV show, movie, band, event, product, or place, the photo must show that exact subject, its people (host, cast, performers), or something unmistakably from it. A generic look-alike does NOT fit (a random game show is not "The Price Is Right"; any guitarist is not Jimi Hendrix).
 - If the scene is about everyday things (diners, cars, kitchens, toys), the photo must clearly show that kind of thing, ideally from the right era. A modern-looking photo for an old-time scene does not fit.
+- If the show's MAIN SUBJECT is given, every photo must belong to that subject (its show, its people, its era). A photo that only matches a word from the narration is wrong: for a scene about the shoe phone on the TV show Get Smart, a real shoe hanging on a phone wire does NOT fit; Don Adams on the shoe phone does.
+- If the show's ERA is given, reject photos that are clearly from a different era (for a 1960s show, no color snapshot from the 1990s and no modern photo).
 - Reject photos that are mostly text, documents, sheet music, maps, logos, blank or unclear, or that show something sad or disturbing the scene doesn't call for.
 Reply with only JSON like {"fits":[3,1]}: the numbers of the photos that fit, best first. Use {"fits":[]} if none fit.`;
 
@@ -294,6 +296,9 @@ module.exports = async (req, res) => {
   if (!allowedRequest(req)) return blockRequest(res);
   let q = String(req.query.q || "").replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
   let scene = String(req.query.scene || "").replace(/\s+/g, " ").trim().slice(0, 500);
+  const subject = String(req.query.subject || "").replace(/\s+/g, " ").trim().slice(0, 80);
+  const era = String(req.query.era || "").replace(/\s+/g, " ").trim().slice(0, 40);
+  if (scene && (subject || era)) scene = (subject ? "The show's MAIN SUBJECT: " + subject + "\n" : "") + (era ? "The show's ERA: " + era + "\n" : "") + "This scene:\n" + scene;
   const want = String(req.query.want || "").replace(/\s+/g, " ").trim().slice(0, 200);
   const debug = req.query.debug === "1";
   const log = [];
