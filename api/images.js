@@ -294,6 +294,7 @@ async function findFor(q, scene, log, debug) {
 }
 
 module.exports = async (req, res) => {
+  if (!(await require("./_lwgate")(req, res, "remember-when"))) return;
   if (!allowedRequest(req)) return blockRequest(res);
   let q = String(req.query.q || "").replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
   let scene = String(req.query.scene || "").replace(/\s+/g, " ").trim().slice(0, 500);

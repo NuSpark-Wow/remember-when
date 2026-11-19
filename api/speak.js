@@ -8,6 +8,7 @@ const DEFAULT_WOMAN = "W3Rk2MrllOWWYVX9H2B1"; // Instructional Marina - Warm & c
 const cache = new Map(); // repeat answers don't cost twice (resets when the server sleeps)
 
 module.exports = async (req, res) => {
+  if (!(await require("./_lwgate")(req, res, "remember-when"))) return;
   if (!allowedRequest(req)) return blockRequest(res);
   const key = process.env.ELEVENLABS_API_KEY;
   // Health check you can open in a browser: /api/speak  (never shows the key)
