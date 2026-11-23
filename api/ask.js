@@ -62,6 +62,7 @@ OTHER FIELDS (shows only):
   Never search the element by itself ("shoe phone" alone finds a real shoe on a wire). Make "image_backup" the topic anchor alone (for example "Don Adams Get Smart", "1950s diner"), so a photo of the right topic still wins if no photo of the element exists.
 - "memory_prompt": one friendly question inviting the viewer to share their own memory, good for conversation with family or friends (for example "Did you have a favorite song on the jukebox?").
 - "did_you_know": one surprising, true fact (1 to 2 sentences).
+- "then_now": "Then vs. Now": 1 to 2 warm sentences on what the show's main subject turned into today, or where it is now (for example the drive-in theater then, and the handful still running today). Well-established facts only; "" if it does not fit.
 - "more": exactly 3 short follow-up topics they might enjoy next, written as questions.
 
 ACCURACY: Well-established facts only. Give prices and numbers as approximate ("about 25 cents"). If something varied by place or year, say so. Never invent quotes.
@@ -87,7 +88,7 @@ const SHOW_TOOL = {
     } } },
     memory_prompt: { type: "string" },
     subject: { type: "string" }, era: { type: "string" },
-    did_you_know: { type: "string" },
+    did_you_know: { type: "string" }, then_now: { type: "string" },
     more: { type: "array", items: { type: "string" } }
   }, required: ["type", "title", "slides"] }
 };

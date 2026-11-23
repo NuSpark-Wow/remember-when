@@ -247,6 +247,10 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
 .end .dyk{background:#2a221b;border-radius:16px;padding:16px 18px;margin-bottom:14px}
 .end .dyk .lab{font-size:.72rem;letter-spacing:.8px;text-transform:uppercase;font-weight:700;color:#e9c983}
 .end .dyk p{margin:6px 0 0;font-size:1rem;line-height:1.55}
+.end .tnow{background:#1d2a2a}.end .tnow .lab{color:#9fe0d4}
+.yearbox{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 2px 0 var(--line)}
+.yearbox .yrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.yearbox input{font-size:1.2rem;padding:10px 12px;border-radius:12px;border:2px solid var(--line);width:9em}
 .end h4{font-size:.78rem;letter-spacing:.8px;text-transform:uppercase;color:#d9c7a4;margin:6px 0 10px}
 .nextGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-bottom:12px}
 .nextGrid button{text-align:left;border:0;border-radius:14px;padding:14px 16px;min-height:60px;background:#3a2f25;color:#fff;font-weight:700;font-size:.92rem;line-height:1.3}
@@ -373,6 +377,15 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <div class="starters" id="starters"></div>
   </section>
 
+  <div class="or" aria-hidden="true">OR</div>
+
+  <section class="yearbox" aria-label="The year you were born">
+    <div class="optlab"><span class="num">3</span> The Year You Were Born</div>
+    <p class="sub2">Type a year (1930 to 2015) for a show about it: the songs, TV, movies, prices, cars and big moments.</p>
+    <div class="yrow"><input id="bornYear" type="number" inputmode="numeric" min="1930" max="2015" aria-label="Year you were born" enterkeyhint="go"><button id="bornGo" class="go">Show my year</button></div>
+    <div class="hint" id="bornHint"></div>
+  </section>
+
   <section class="show" id="show" aria-live="polite">
     <div class="clarify hide" id="clarify" role="dialog" aria-label="One quick question">
       <div class="ctag">One quick question</div>
@@ -422,6 +435,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-botto
     <div class="end hide" id="endArea">
       <div class="memory"><div class="lab">Your turn</div><p id="memQ"></p></div>
       <div class="dyk hide" id="dykBox"><div class="lab">Did you know?</div><p id="dyk"></p></div>
+      <div class="dyk tnow hide" id="tnowBox"><div class="lab">Then vs. Now</div><p id="tnow"></p></div>
       <h4>Where would you like to go next?</h4>
       <div class="nextGrid" id="nextGrid"></div>
       <div class="endBtns">
@@ -850,6 +864,17 @@ function toShow(){
   if (window.parent !== window) toTop(el.getBoundingClientRect().top + window.pageYOffset);
   else el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
+// Option 3: The Year You Were Born — one year becomes its own show.
+function bornShow(){
+  const y = parseInt(String($("bornYear").value || "").trim(), 10);
+  if (!(y >= 1930 && y <= 2015)) { $("bornHint").textContent = "Type a year from 1930 to 2015."; return; }
+  $("bornHint").textContent = ""; try { unlock(); } catch(e) {}
+  try { window.va && window.va("event", { name: "born_year", data: { decade: Math.floor(y / 10) * 10 } }); } catch(e) {}
+  ask("The year " + y + ", the year I was born: the top songs, TV shows and movies of " + y + ", what things cost, the cars, and the big moments people talked about in " + y + ".");
+}
+$("bornGo").onclick = bornShow;
+$("bornYear").addEventListener("keydown", e => { if (e.key === "Enter") bornShow(); });
+
 async function ask(q, opts = {}){
   if (busy) return;
   busy = true; pause(); stopSound();
@@ -936,6 +961,7 @@ function startShow(d){
   $("tellMore").classList.toggle("hide", !isShow);
   $("memQ").textContent = d.memory_prompt || "What do you remember about this? Share a story with someone today.";
   $("dyk").textContent = d.did_you_know || ""; $("dykBox").classList.toggle("hide", !d.did_you_know);
+  $("tnow").textContent = d.then_now || ""; $("tnowBox").classList.toggle("hide", !d.then_now);
   $("nextGrid").innerHTML = "";
   (d.more || []).forEach(t => { const b = document.createElement("button"); b.textContent = t; b.onclick = () => { unlock(); ask(t); }; $("nextGrid").appendChild(b); });
   // dots
