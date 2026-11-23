@@ -868,7 +868,7 @@ function toShow(){
 function bornShow(){
   const y = parseInt(String($("bornYear").value || "").trim(), 10);
   if (!(y >= 1930 && y <= 2015)) { $("bornHint").textContent = "Type a year from 1930 to 2015."; return; }
-  $("bornHint").textContent = "";
+  $("bornHint").textContent = ""; try { unlock(); } catch(e) {}
   try { window.va && window.va("event", { name: "born_year", data: { decade: Math.floor(y / 10) * 10 } }); } catch(e) {}
   ask("The year " + y + ", the year I was born: the top songs, TV shows and movies of " + y + ", what things cost, the cars, and the big moments people talked about in " + y + ".");
 }
